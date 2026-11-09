@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# Beyond the Title — .gitignore
+#
+# RULE: real employee content (videos, transcripts, captions, thumbnails,
+# working JSON) never belongs in this repository. Only source code, docs and
+# SYNTHETIC fixtures are committed. These patterns are a safety net — keep
+# your real project folder outside the repo (e.g. ~/Documents/...).
+# ---------------------------------------------------------------------------
+
+# OS / editor noise
+.DS_Store
+._*
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Secrets (none are needed by this project — never add any)
+.env
+.env.*
+
+# Local working folders, test output and release packages
+/release/
+/workspace/
+/project/
+/tmp/
+/test-output/
+*.zip
+
+# Project-folder content accidentally created inside the repo
+/data/
+/stories/
+/backups/
+/site/data/
+/site/stories/
+/site/backups/
+**/backups/
+!fixtures/**/backups/
+
+# Real media and caption assets (synthetic fixtures may be re-included below)
+*.mp4
+*.mov
+*.m4v
+*.webm
+*.mkv
+*.vtt
+*.srt
+*.webp
+*.jpg
+*.jpeg
+
+# Transcripts: plain-text files are ignored everywhere except synthetic fixtures
+*.txt
+!fixtures/**/*.txt
+!fixtures/**/*.vtt
+
+# Node tooling is optional and dev-only; never commit installs
+node_modules/

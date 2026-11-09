@@ -1,0 +1,66 @@
+# Beyond the Title
+
+> You know their names. Discover their stories.
+
+An internal employee storytelling and video-discovery experience. Short videos of
+employees and managers talking about themselves, their projects and their proud
+moments, presented as a bright, modern SaaS-style app.
+
+The finished site is **pure static files** (HTML, CSS, vanilla JavaScript, JSON, media)
+for an internal static web server (Syndicate). There is no server runtime, no database,
+no build step, no framework and no third-party network requests.
+
+## Status
+
+| Milestone | Scope | State |
+|---|---|---|
+| **M1** | Repository, architecture, **standalone Content Builder** | 🚧 In progress |
+| M2 | Real Socialive transcript tuning, video and thumbnail support, people & teams management | Planned |
+| M3 | Employee-facing website | Planned |
+| M4 | Release packaging for Syndicate | Planned |
+| M5 | Admin guides and final testing | Planned |
+
+See [docs/roadmap.md](docs/roadmap.md).
+
+## Quick start: Content Builder
+
+1. Open `builder/builder.html` in Google Chrome. Drag the file onto a Chrome window, or use **File → Open File… (⌘O)**.
+   Nothing needs to be installed and nothing is downloaded from the internet.
+2. Open **Diagnostics** and run the checks to see what this browser allows.
+3. Click **Try with sample data** to explore using synthetic transcripts, or go to **Import** and drop your `.txt` transcripts.
+4. Review the suggested statements, pick a headline, fill in the story details, and watch the live card preview.
+5. Click **Open Project Folder** → **Save to Project**, or use **Save & Export** to download the JSON or an update package.
+
+The builder is a single self-contained file. Copy it to another machine using any method
+your organization approves; it needs no other files.
+
+## Repository layout
+
+```
+builder/builder.html   Standalone Content Builder (admin tool, never deployed)
+site/                  Employee-facing website source (Milestone 3)
+fixtures/              Synthetic test data only: transcripts, JSON, a sample project folder
+tests/                 Self-test runner, optional dev-machine E2E, static checks
+docs/                  Architecture, data model, roadmap, workflow, deployment, browser notes
+```
+
+## Data-handling rules
+
+- **Real employee content never goes in this repository.** That includes videos, transcripts, captions, thumbnails and working JSON.
+  Keep the real project folder outside the repo (for example `~/Documents/Beyond the Title Project/`).
+  `.gitignore` is a safety net, not the plan.
+- All committed examples and tests use **synthetic** people and text.
+- The builder makes **no network requests**. Its Content-Security-Policy blocks them, and it does not store
+  transcripts in browser storage.
+- The optional **Copy for Copilot** action only copies text to the clipboard when you click it.
+  You are responsible for following company information-handling policy for anything you paste elsewhere.
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Data model](docs/data-model.md)
+- [Roadmap](docs/roadmap.md)
+- [Publishing workflow](docs/publishing-workflow.md)
+- [Browser capabilities & troubleshooting](docs/browser-capabilities.md)
+- [Syndicate deployment (open questions)](docs/syndicate-deployment.md)
+- [Testing](tests/README.md)

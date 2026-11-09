@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.000
+<v Interviewer>What's one thing you'd like people to know about your work?
+
+00:00:04.500 --> 00:00:11.000
+<v Casey Testperson>I work on fraud prevention, which means most of my best days are the ones where nothing happens to our customers.
+
+00:00:11.500 --> 00:00:14.000
+<v Interviewer>Is there a moment that stands out?
+
+00:00:14.500 --> 00:00:23.000
+<v Casey Testperson>The moment I'm most proud of was when our team spotted a new scam pattern on a Friday night and had protections in place by Monday morning.
+
+00:00:23.500 --> 00:00:29.000
+<v Casey Testperson>We worked through the weekend together, and nobody had to be asked.
+
+00:00:29.500 --> 00:00:35.000
+<v Casey Testperson>We stopped about two hundred fraudulent transfers in the first month.
+
+00:00:35.500 --> 00:00:38.000
+<v Interviewer>What did you take away from that?
+
+00:00:38.500 --> 00:00:44.000
+<v Casey Testperson>I learned to trust my instincts and then back them up with data.

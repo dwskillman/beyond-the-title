@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "stories": [
+    { "id": "story-0001", "personId": "person-0001", "name": "First Duplicate", "headline": "One", "tags": [], "transcript": "stories/story-0001/transcript.txt", "published": false },
+    { "id": "story-0001", "personId": "person-0002", "name": "Second Duplicate", "headline": "Two", "tags": [], "transcript": "stories/story-0001b/transcript.txt", "published": false }
+  ]
+}

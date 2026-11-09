@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-01T15:30:00.000Z",
+  "generator": "Beyond the Title Content Builder 0.1.0 (synthetic fixture)",
+  "stories": [
+    {
+      "id": "story-0001",
+      "personId": "person-0001",
+      "name": "Avery Example",
+      "role": "Learning Designer",
+      "managerId": "person-0003",
+      "teamId": "learning-design",
+      "project": "Team Hub",
+      "headline": "The project I'm most proud of is Team Hub",
+      "headlineSource": "quote",
+      "description": "Avery and a cross-team group turned thirty onboarding documents into one guided path, and new hires got up to speed twice as fast.",
+      "quote": "I learned that the best ideas came from the people closest to the work, not from the people with the biggest titles.",
+      "quoteTimestamp": "00:01:20",
+      "quoteStart": 80,
+      "tags": ["Collaboration", "Onboarding", "Learning & Growth"],
+      "transcript": "stories/story-0001/transcript.txt",
+      "captions": null,
+      "video": null,
+      "thumbnail": null,
+      "duration": null,
+      "featured": true,
+      "status": "approved",
+      "published": false,
+      "source": {
+        "transcriptFile": "synthetic-01-timestamped-speakers.txt",
+        "transcriptSha256": "0899fc8b49bbbc63f19ff58bf62b497dd0eb2043dffc02cb47cd01e17e10ce93",
+        "importedAt": "2026-11-01T15:00:00.000Z"
+      },
+      "createdAt": "2026-11-01T15:00:00.000Z",
+      "updatedAt": "2026-11-01T15:30:00.000Z"
+    },
+    {
+      "id": "story-0002",
+      "personId": "person-0002",
+      "name": "Jordan Sample",
+      "role": "Software Engineer",
+      "managerId": null,
+      "teamId": "payments-platform",
+      "project": null,
+      "headline": "",
+      "headlineSource": null,
+      "description": "",
+      "quote": "",
+      "quoteTimestamp": null,
+      "quoteStart": null,
+      "tags": [],
+      "transcript": "stories/story-0002/transcript.txt",
+      "captions": null,
+      "video": null,
+      "thumbnail": null,
+      "duration": null,
+      "featured": false,
+      "status": "draft",
+      "published": false,
+      "source": {
+        "transcriptFile": "synthetic-02-speaker-blocks.txt",
+        "transcriptSha256": "2faedf6a08ae0414a328b39c7f668287cd26e77b4f1d24cfdf49cf5a068079ca",
+        "importedAt": "2026-11-01T15:10:00.000Z"
+      },
+      "createdAt": "2026-11-01T15:10:00.000Z",
+      "updatedAt": "2026-11-01T15:10:00.000Z"
+    }
+  ]
+}

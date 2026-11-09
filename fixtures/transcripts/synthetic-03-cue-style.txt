@@ -1,0 +1,55 @@
+1
+00:00:01,200 --> 00:00:05,000
+Hi, I'm Riley Placeholder, and I manage a small
+
+2
+00:00:05,000 --> 00:00:09,400
+data analytics team that supports our branch network.
+
+3
+00:00:09,400 --> 00:00:14,800
+As a manager, the thing I'm proudest of is the mentoring
+
+4
+00:00:14,800 --> 00:00:19,000
+program we started two years ago for analysts who wanted to grow.
+
+5
+00:00:19,000 --> 00:00:24,600
+Three people from my team were promoted this year, and every one of them
+
+6
+00:00:24,600 --> 00:00:28,000
+said the program made a difference.
+
+7
+00:00:28,500 --> 00:00:33,900
+The challenge was that half of the team works remotely, so people
+
+8
+00:00:33,900 --> 00:00:37,200
+didn't always feel comfortable asking for help.
+
+9
+00:00:37,200 --> 00:00:43,500
+We created a weekly show-your-work session where anyone could present
+
+10
+00:00:43,500 --> 00:00:47,000
+something they were stuck on.
+
+11
+00:00:47,500 --> 00:00:53,000
+What surprised me most was how quickly people started helping each other
+
+12
+00:00:53,000 --> 00:00:55,800
+without being asked.
+
+13
+00:00:56,000 --> 00:01:01,400
+I learned that my job isn't to have every answer, it's to make it safe
+
+14
+00:01:01,400 --> 00:01:04,000
+for people to ask the question.

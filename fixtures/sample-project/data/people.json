@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-01T15:30:00.000Z",
+  "people": [
+    { "id": "person-0001", "name": "Avery Example", "title": "Learning Designer", "teamId": "learning-design", "managerId": "person-0003", "isManager": false },
+    { "id": "person-0002", "name": "Jordan Sample", "title": "Software Engineer", "teamId": "payments-platform", "managerId": null, "isManager": false },
+    { "id": "person-0003", "name": "Quinn Manager-Example", "title": "Director, Learning Design", "teamId": "learning-design", "managerId": null, "isManager": true }
+  ]
+}

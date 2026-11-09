@@ -1,24 +1,24 @@
 # Roadmap
 
 Development runs milestone by milestone. Each milestone ends with a commit, a push to the approved
-private repository, a summary, the known limitations, and a **pause for feedback** before the next one starts.
+repository, a summary, the known limitations, and a **pause for feedback** before the next one starts.
 
 ## M1: Standalone Content Builder (current)
 
 **Goal:** prove the content workflow on a locked-down corporate Mac with Chrome and nothing installed.
 
-- [ ] Private repository, `.gitignore` that keeps real content out, docs skeleton
-- [ ] `builder/builder.html`: one self-contained file, no dependencies, no network
-- [ ] Browser capability diagnostics, with live tests for file pick, folder pick, folder write, download and clipboard
-- [ ] TXT transcript import (drag-and-drop and multi-select), encoding detection, duplicate detection
-- [ ] Pluggable transcript parser (cue/SRT/VTT-style, timestamped lines, speaker blocks, speaker lines, plain text)
-- [ ] Keyword-based candidate statements (3) with context, timestamps and exact-quote checks
-- [ ] Headline suggestions (exact quote plus theme templates) with source labels and review flags
-- [ ] Optional "Copy for Copilot" prompt and paste-back parsing with quote checks
-- [ ] Structured metadata form, live story card and featured preview
-- [ ] Multiple stories; `stories.json` import and export with no data loss; validation
-- [ ] Project folder: direct save (File System Access) → read-only folder fallback → export or zip fallback
-- [ ] Built-in self-tests; optional headless E2E on the dev machine
+- [x] Public repository (code, docs and synthetic fixtures only), `.gitignore` that keeps real content out, docs skeleton
+- [x] `builder/builder.html`: one self-contained file, no dependencies, no network
+- [x] Browser capability diagnostics, with live tests for file pick, folder pick, folder write, download and clipboard
+- [x] TXT transcript import (drag-and-drop and multi-select), encoding detection, duplicate detection
+- [x] Pluggable transcript parser (cue/SRT/VTT-style, timestamped lines, speaker blocks, speaker lines, plain text)
+- [x] Keyword-based candidate statements (3) with context, timestamps and exact-quote checks
+- [x] Headline suggestions (exact quote plus theme templates) with source labels and review flags
+- [x] Optional "Copy for Copilot" prompt and paste-back parsing with quote checks
+- [x] Structured metadata form, live story card and featured preview
+- [x] Multiple stories; `stories.json` import and export with no data loss; validation
+- [x] Project folder: direct save (File System Access) → read-only folder fallback → export or zip fallback
+- [x] Built-in self-tests; optional headless E2E on the dev machine
 
 **Exit criteria:** the user runs the builder on the corporate Mac with the four real Socialive transcripts
 and reports back: the diagnostics report, the detected format, candidate quality, and whether save or export worked.

@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+// Dev-machine helper (optional, not part of using or publishing the builder).
+// Copies the synthetic UTF-8 fixtures into builder.html between the FIXTURES markers,
+// so "Try with sample data" and the built-in self-tests use exactly the committed files.
+//   node tests/embed-fixtures.mjs          → rewrite builder.html
+//   node tests/embed-fixtures.mjs --check  → exit 1 if builder.html is out of date
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const builder = join(root, 'builder', 'builder.html');
+export const EMBEDDED = [
+  'transcripts/synthetic-01-timestamped-speakers.txt',
+  'transcripts/synthetic-02-speaker-blocks.txt',
+  'transcripts/synthetic-03-cue-style.txt',
+  'transcripts/synthetic-04-plain.txt',
+  'transcripts/synthetic-05-low-signal.txt',
+  'transcripts/synthetic-06-webvtt-voices.txt',
+  'transcripts/synthetic-07-speaker-lines.txt',
+  'data/edge-cases.stories.json',
+  'data/legacy-array.stories.json',
+  'data/duplicate-ids.stories.json'
+];
+
+export function buildBlock() {
+  const parts = ['<!-- FIXTURES:BEGIN -->'];
+  for (const rel of EMBEDDED) {
+    const text = readFileSync(join(root, 'fixtures', rel), 'utf8');
+    if (/<\/script|<!--/i.test(text)) throw new Error(`${rel} contains "</script" or "<!--" and cannot be embedded safely`);
+    const name = rel.split('/').pop();
+    parts.push(`<script type="text/plain" data-fixture="${name}">${text}</script>`);
+  }
+  parts.push('<!-- FIXTURES:END -->');
+  return parts.join('\n');
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const html = readFileSync(builder, 'utf8');
+  const re = /<!-- FIXTURES:BEGIN -->[\s\S]*?<!-- FIXTURES:END -->/;
+  if (!re.test(html)) { console.error('FIXTURES markers not found in builder.html'); process.exit(2); }
+  const next = html.replace(re, buildBlock());
+  if (process.argv.includes('--check')) {
+    if (next !== html) { console.error('Embedded fixtures are out of date. Run: node tests/embed-fixtures.mjs'); process.exit(1); }
+    console.log('Embedded fixtures match /fixtures.');
+  } else {
+    writeFileSync(builder, next);
+    console.log(`Embedded ${EMBEDDED.length} fixtures into builder/builder.html`);
+  }
+}

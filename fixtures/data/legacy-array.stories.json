@@ -1,0 +1,22 @@
+[
+  {
+    "id": "story-001",
+    "personId": "employee-001",
+    "name": "Example Employee",
+    "role": "Learning Designer",
+    "managerId": "manager-001",
+    "teamId": "learning-design",
+    "project": "Example Project",
+    "headline": "An example story headline",
+    "description": "An example story description.",
+    "quote": "An exact statement from the transcript.",
+    "quoteTimestamp": null,
+    "tags": ["Collaboration", "Innovation"],
+    "transcript": "stories/employee-001/transcript.txt",
+    "captions": null,
+    "video": null,
+    "thumbnail": null,
+    "featured": false,
+    "published": false
+  }
+]

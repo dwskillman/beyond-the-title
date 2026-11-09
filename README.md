@@ -14,7 +14,7 @@ no build step, no framework and no third-party network requests.
 
 | Milestone | Scope | State |
 |---|---|---|
-| **M1** | Repository, architecture, **standalone Content Builder** | 🚧 In progress |
+| **M1** | Repository, architecture, **standalone Content Builder** | ✅ Delivered. Awaiting a test on the corporate Mac |
 | M2 | Real Socialive transcript tuning, video and thumbnail support, people & teams management | Planned |
 | M3 | Employee-facing website | Planned |
 | M4 | Release packaging for Syndicate | Planned |

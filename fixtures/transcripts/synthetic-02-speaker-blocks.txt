@@ -1,0 +1,32 @@
+Host  00:00:00
+Welcome! Let's start with an easy one. What does your team do?
+
+Jordan Sample  00:00:06
+I'm a software engineer on the Payments Platform team. We build the services
+that move money between accounts, so reliability is basically everything for us.
+
+Host  00:00:19
+What's something you built that you're proud of?
+
+Jordan Sample  00:00:23
+Last year I led the rebuild of our alerting system. We were getting hundreds of
+noisy alerts every night, and the on-call engineers were exhausted.
+I came up with a simple idea: every alert had to have an owner and a clear
+action, or we deleted it. We cut nightly alerts by about 80 percent, and our
+response time to real incidents got faster.
+
+Host  00:01:02
+That's a big change. Was it hard to get people on board?
+
+Jordan Sample  00:01:06
+It was tough at first. Nobody wants to be the person who deletes an alert that
+turns out to matter. What worked was doing it together, one service at a time,
+with the people who actually carry the pager.
+The biggest lesson for me was that people support changes they help design.
+
+Host  00:01:31
+What do you do outside of work?
+
+Jordan Sample  00:01:34
+I restore old bicycles. I've rebuilt eleven so far, and I give most of them away
+to a local youth program.

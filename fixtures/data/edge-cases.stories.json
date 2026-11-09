@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-01-15T10:00:00.000Z",
+  "generator": "hand-written synthetic fixture",
+  "customTopLevel": {
+    "note": "Unknown top-level keys must survive a round-trip.",
+    "nested": [1, 2, { "deep": true }]
+  },
+  "stories": [
+    {
+      "id": "story-0001",
+      "personId": "person-0001",
+      "name": "Zoë Ångström-Nguyễn",
+      "role": "Senior Analyst 📊",
+      "managerId": "person-0003",
+      "teamId": "risk-analytics",
+      "project": "Project <b>Bold</b>",
+      "headline": "<img src=x onerror=alert('xss')>",
+      "description": "Script test: <script>alert(1)<\/script> & ampersands \"quotes\" 'apostrophes'",
+      "quote": "Right-to-left test: שלום עולם",
+      "quoteTimestamp": "00:01:05",
+      "tags": ["Collaboration", "数据", "<svg onload=alert(1)>"],
+      "transcript": "stories/story-0001/transcript.txt",
+      "captions": null,
+      "video": null,
+      "thumbnail": null,
+      "featured": true,
+      "published": false,
+      "status": "review",
+      "legacyRating": 4.5,
+      "customFields": { "region": "West", "flags": [true, false, null] }
+    },
+    {
+      "notes": "Key order differs from the builder's default order; no status field (legacy record).",
+      "published": false,
+      "id": "story-0007",
+      "personId": "person-0002",
+      "name": "Plain Example",
+      "headline": "A minimal legacy record with no status field",
+      "tags": [],
+      "transcript": "stories/story-0007/transcript.txt"
+    }
+  ]
+}

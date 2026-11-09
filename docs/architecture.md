@@ -13,7 +13,7 @@
 ## The three folders
 
 ```
-REPOSITORY (git, private)            PROJECT FOLDER (real content, NOT in git)     RELEASE (M4, uploaded to Syndicate)
+REPOSITORY (git, public)             PROJECT FOLDER (real content, NOT in git)     RELEASE (M4, uploaded to Syndicate)
 beyond-the-title/                    e.g. ~/Documents/Beyond the Title Project/    a filtered copy:
 ├── builder/builder.html  ──opens──▶ ├── data/stories.json   (working DB, drafts)  ├── index.html, css/, js/  (from site/)
 ├── site/   (M3 website source)      ├── data/people.json                          ├── data/stories.json  (published only)
@@ -73,7 +73,7 @@ one at a time, or as an **update package `.zip`** that also contains the new tra
 - CSP: `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src blob:; connect-src 'none'; form-action 'none'; base-uri 'none'`.
   Inline script is required for a single file. All network access is blocked.
 - All transcript and JSON text is rendered with `textContent` and DOM APIs. `innerHTML` is used only for constant
-  SVG icons, and `tests/check-static.sh` enforces this.
+  SVG icons, and `tests/check-static.mjs` enforces this.
 - No `localStorage` or IndexedDB. Unsaved work lives only in memory, and closing the tab warns you first.
 - Folder access is only requested from explicit button clicks. Every write stays inside the folder you chose.
   IDs used in paths are restricted to `[a-z0-9-]`.

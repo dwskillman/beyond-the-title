@@ -1,0 +1,9 @@
+Speaker 1: Could you introduce yourself?
+Speaker 2: Hi, I'm Taylor Mockname. I'm a product designer, and I joined the company two years ago.
+Speaker 1: What's a project that pushed you outside your comfort zone?
+Speaker 2: The accessibility redesign of our mobile app pushed me way outside my comfort zone. I had never worked with screen reader users before, and I realized how many small things we were getting wrong.
+Speaker 2: We invited eight customers who use screen readers to test every new screen with us.
+Speaker 1: What changed because of that?
+Speaker 2: Our accessibility issues went from over a hundred to fewer than ten, and the new design is easier for everyone, not just screen reader users.
+Speaker 1: Great. Anything else?
+Speaker 2: I'm really grateful to the engineers who stayed patient while I asked a thousand questions.

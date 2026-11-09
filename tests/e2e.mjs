@@ -46,7 +46,7 @@ async function newPage(hash = '#/dashboard', initScript) {
     if (m.method === 'Page.fileChooserOpened' && p.nextFiles) { const files = p.nextFiles; p.nextFiles = null; p.send('DOM.setFileInputFiles', { files, backendNodeId: m.params.backendNodeId }).then(() => { p.chooserDone = true; }).catch((e) => { p.chooserError = e.message; }); }
   });
   if (initScript) await p.send('Page.addScriptToEvaluateOnNewDocument', { source: initScript });
-  await p.goto(URL + hash);
+  if (hash !== null) await p.goto(URL + hash);
   return p;
 }
 async function choose(p, selector, files) { p.nextFiles = files; p.chooserDone = false; p.chooserError = null; await p.click(selector); const t0 = Date.now(); while (!p.chooserDone && !p.chooserError && Date.now() - t0 < 8000) await sleep(50); if (p.chooserError) throw new Error(p.chooserError); }
@@ -268,6 +268,141 @@ try {
     check('no console errors in direct-save flow', p.errors.length === 0, p.errors.join('\n'));
     await p.send('Page.close').catch(() => {});
   } finally { server.close(); }
+
+  /* ---------------- Milestone 2: media ---------------- */
+  const { mkdirSync, copyFileSync, writeFileSync: wf } = await import('node:fs');
+  const exportDir = mkdtempSync(join(tmpdir(), 'btt-socialive-'));
+  const SOC = join(exportDir, 'Socialive export');
+  mkdirSync(SOC);
+  copyFileSync(FX('transcripts/synthetic-01-timestamped-speakers.txt'), join(SOC, 'synthetic-01-timestamped-speakers.txt'));
+  copyFileSync(FX('media/synthetic-01-timestamped-speakers.mp4'), join(SOC, 'synthetic-01-timestamped-speakers.mp4'));
+  copyFileSync(FX('media/synthetic-01-timestamped-speakers.vtt'), join(SOC, 'synthetic-01-timestamped-speakers.vtt'));
+  copyFileSync(FX('transcripts/synthetic-02-speaker-blocks.txt'), join(SOC, 'synthetic-02-speaker-blocks.txt'));
+  copyFileSync(FX('media/synthetic-01-timestamped-speakers.mp4'), join(SOC, 'unlabelled clip.mp4'));
+  wf(join(SOC, 'notes.docx'), 'ignored');
+  const MP4 = readFileSync(FX('media/synthetic-01-timestamped-speakers.mp4'));
+
+  p = await newPage('#/import');
+  await choose(p, '[data-testid=import-folder]', [SOC]);
+  await p.waitFor(S('stories.length === 2') + ' && ' + S('media.get("story-0001") && window.BTT.store.media.get("story-0001").captions'), 20000);
+  const m1 = await p.eval(`(() => { const s = ${S('get("story-0001")')}; const m = ${S('media.get("story-0001")')}; return { video: s.video, duration: s.duration, thumb: s.thumbnail, captions: s.captions, tsrc: m.thumbnail && m.thumbnail.source, tsize: m.thumbnail && m.thumbnail.size, cues: m.captions.check.cues }; })()`);
+  check('M2: folder import makes stories from transcripts', await p.eval(S('stories.length')) === 2);
+  check('M2: video matched by name and its duration read (6 s)', m1.video === 'stories/story-0001/video.mp4' && m1.duration === 6, JSON.stringify(m1));
+  check('M2: thumbnail auto-captured from the video on file://', m1.thumb === 'stories/story-0001/thumbnail.jpg' && m1.tsrc === 'auto' && m1.tsize > 500, JSON.stringify(m1));
+  check('M2: captions matched and validated (3 cues)', m1.captions === 'stories/story-0001/captions.vtt' && m1.cues === 3);
+  check('M2: unmatched video listed for manual assignment', await p.eval(S('unmatched.length')) === 1 && await p.eval(S('unmatched[0].file.name')) === 'unlabelled clip.mp4');
+  await p.waitFor('location.hash === "#/media"');
+  await p.eval('(() => { const row = document.querySelector("[data-testid=unmatched-row]"); const sel = row.querySelector("select"); sel.value = "story-0002"; })()');
+  await p.eval('[...document.querySelectorAll("[data-testid=unmatched-row] button")].find(b => b.textContent.includes("Assign")).click()');
+  await p.waitFor(S('get("story-0002").video === "stories/story-0002/video.mp4"'), 15000);
+  check('M2: manual assignment attaches the video to the chosen story', await p.eval(S('unmatched.length')) === 0);
+  check('M2: media report lists each story', await p.eval('document.querySelectorAll("[data-testid=media-row]").length') === 2);
+
+  await p.goto(URL + '#/story/story-0001');
+  await p.waitFor('document.querySelector("[data-testid=video-player]") && document.querySelector("[data-testid=video-player]").readyState >= 2', 15000);
+  await p.eval('(() => { const v = document.querySelector("[data-testid=video-player]"); v.currentTime = 4; return new Promise(r => v.addEventListener("seeked", r, { once: true })); })()');
+  await p.click('[data-testid=capture-frame]');
+  await p.waitFor(S('media.get("story-0001").thumbnail.source === "frame"'));
+  check('M2: "Use this frame as thumbnail" captures the paused frame', Math.abs(await p.eval(S('media.get("story-0001").thumbnail.time')) - 4) < 0.2);
+  check('M2: card preview shows the real thumbnail', await p.eval('!!document.querySelector("[data-testid=preview] .s-media img")'));
+  check('M2: player has the captions track', await p.eval('!!document.querySelector("[data-testid=video-player] track")'));
+  await p.type('#f-role', 'Learning Designer');
+  await p.type('#f-team', 'Learning Design'); await p.eval('document.querySelector("#f-team").dispatchEvent(new Event("change"))');
+  await p.type('#f-headline', 'The project I\'m most proud of is Team Hub');
+  await p.type('#f-description', 'Avery turned thirty onboarding documents into one guided path.');
+  await p.eval('(() => { const el = document.querySelector("#f-status"); el.value = "approved"; el.dispatchEvent(new Event("change")); })()');
+  await p.waitFor(S('get("story-0001").status === "approved"'));
+  await p.goto(URL + '#/story/story-0001');
+  await p.waitFor('document.querySelector("[data-testid=field-published]") && !document.querySelector("[data-testid=field-published]").disabled');
+  await p.click('[data-testid=field-published]');
+  await p.waitFor(S('get("story-0001").published === true'));
+  check('M2: approved story with video + thumbnail can be published', await p.eval(S('get("story-0001").status')) === 'published');
+
+  await p.goto(URL + '#/export');
+  await p.click('[data-testid=export-zip]');
+  await p.waitFor('document.querySelector("[data-testid=zip-with-videos]")');
+  await p.click('[data-testid=zip-with-videos]');
+  await p.waitFor('[...document.querySelectorAll("dialog.modal h2")].some(h => h.textContent.includes("Update package downloaded"))', 15000);
+  const zipName2 = await p.eval('document.querySelector("dialog.modal b").textContent');
+  const zip2 = await waitDownload(zipName2, 15000);
+  let list2 = ''; let zipOk2 = false;
+  try { list2 = execFileSync('unzip', ['-l', zip2]).toString(); execFileSync('unzip', ['-tq', zip2]); zipOk2 = true; } catch (e) { list2 = String(e); }
+  check('M2: package with videos is a valid zip', zipOk2, list2);
+  check('M2: package holds video, thumbnail and captions', ['stories/story-0001/video.mp4', 'stories/story-0001/thumbnail.jpg', 'stories/story-0001/captions.vtt', 'stories/story-0002/video.mp4'].every((f) => list2.includes(f)), list2);
+  check('M2: packaged video is byte-identical', Buffer.compare(execFileSync('unzip', ['-p', zip2, 'stories/story-0001/video.mp4']), MP4) === 0);
+  const jpg = execFileSync('unzip', ['-p', zip2, 'stories/story-0001/thumbnail.jpg']);
+  check('M2: packaged thumbnail is a JPEG', jpg[0] === 0xFF && jpg[1] === 0xD8);
+  const pj = JSON.parse(execFileSync('unzip', ['-p', zip2, 'data/stories.json']).toString());
+  const ps1 = pj.stories.find((x) => x.id === 'story-0001');
+  check('M2: exported record is published with media paths and duration', ps1.published === true && ps1.status === 'published' && ps1.duration === 6 && ps1.captions === 'stories/story-0001/captions.vtt', JSON.stringify(ps1));
+  check('no console errors in media flow', p.errors.length === 0, p.errors.join('\n'));
+  await p.send('Page.close').catch(() => {});
+
+  /* Diagnostics video test on file:// */
+  p = await newPage('#/diagnostics');
+  await choose(p, '[data-testid=diag-run-tVideo]', [FX('media/synthetic-01-timestamped-speakers.mp4')]);
+  await p.waitFor('window.BTT.Diagnostics.results.get("tVideo") && window.BTT.Diagnostics.results.get("tVideo").status !== "pending"', 15000);
+  check('M2: diagnostics video test reads the MP4 and captures a frame', await p.eval('window.BTT.Diagnostics.results.get("tVideo").status') === 'pass', await p.eval('window.BTT.Diagnostics.results.get("tVideo").detail'));
+  await p.send('Page.close').catch(() => {});
+
+  /* Direct save of media, reopen last folder, scan for hand-copied files, People & Teams (OPFS stand-in folder) */
+  const server2 = http.createServer((req, res) => {
+    const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '');
+    const file = join(ROOT, rel);
+    if (!file.startsWith(ROOT) || !existsSync(file)) { res.writeHead(404); res.end(); return; }
+    res.writeHead(200, { 'Content-Type': file.endsWith('.html') ? 'text/html; charset=utf-8' : 'application/octet-stream' }); res.end(readFileSync(file));
+  });
+  await new Promise((r) => server2.listen(0, '127.0.0.1', r));
+  const HTTP2 = `http://127.0.0.1:${server2.address().port}/builder/builder.html`;
+  try {
+    p = await newPage(null);
+    await p.send('Page.addScriptToEvaluateOnNewDocument', { source: "window.showDirectoryPicker = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('proj2', { create: true });" });
+    await p.goto(HTTP2 + '#/dashboard');
+    await p.click('[data-testid=open-folder]');
+    await p.waitFor('document.querySelector("[data-testid=modal-confirm]")');
+    await p.click('[data-testid=modal-confirm]');
+    await p.waitFor(S('mode === "direct"'));
+    await p.goto(HTTP2 + '#/import');
+    await choose(p, '[data-testid=choose-files]', [join(SOC, 'synthetic-01-timestamped-speakers.txt'), join(SOC, 'synthetic-01-timestamped-speakers.mp4'), join(SOC, 'synthetic-01-timestamped-speakers.vtt'), join(SOC, 'synthetic-02-speaker-blocks.txt')]);
+    await p.waitFor(S('media.get("story-0001") && window.BTT.store.media.get("story-0001").captions'), 20000);
+    await p.click('[data-testid=save-project]');
+    await p.waitFor('document.querySelector("[data-testid=save-plan]")');
+    const plan2 = await p.eval('document.querySelector("[data-testid=save-plan]").textContent');
+    check('M2 direct: save plan lists the video, thumbnail and captions', ['stories/story-0001/video.mp4', 'stories/story-0001/thumbnail.jpg', 'stories/story-0001/captions.vtt'].every((x) => plan2.includes(x)), plan2);
+    await p.click('[data-testid=modal-confirm]');
+    await p.waitFor(S('hasUnsaved() === false'), 20000);
+    const opfs2 = `(async () => { const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('proj2');
+      const get = async (rel) => { const ps = rel.split('/'); let d = root; for (const x of ps.slice(0, -1)) d = await d.getDirectoryHandle(x, { create: true }); return d.getFileHandle(ps.pop(), { create: false }).then((f) => f.getFile()).catch(() => null); };
+      const put = async (rel, blob) => { const ps = rel.split('/'); let d = root; for (const x of ps.slice(0, -1)) d = await d.getDirectoryHandle(x, { create: true }); const w = await (await d.getFileHandle(ps.pop(), { create: true })).createWritable(); await w.write(blob); await w.close(); };
+      return { get, put }; })()`;
+    const saved = await p.eval(`(async () => { const fs = await ${opfs2}; const v = await fs.get('stories/story-0001/video.mp4'), t = await fs.get('stories/story-0001/thumbnail.jpg'), c = await fs.get('stories/story-0001/captions.vtt'); return { v: v && v.size, t: t && t.size, c: c && (await c.text()).startsWith('WEBVTT') }; })()`);
+    check('M2 direct: video written in full, thumbnail and captions saved', saved.v === MP4.length && saved.t > 500 && saved.c === true, JSON.stringify(saved));
+    check('M2 direct: after saving, assets show as in the project folder', await p.eval(S('assetState(window.BTT.store.get("story-0001"), "video")')) === 'saved' && !(await p.eval(S('media.has("story-0001")'))));
+    // A video copied into a story folder by hand → Scan project folder links it and reads its length.
+    await p.eval(`(async () => { const fs = await ${opfs2}; await fs.put('stories/story-0002/video.mp4', new Blob([new Uint8Array(${JSON.stringify([...MP4])})], { type: 'video/mp4' })); })()`);
+    await p.goto(HTTP2 + '#/media');
+    await p.click('[data-testid=scan-folder]');
+    await p.waitFor(S('get("story-0002").video === "stories/story-0002/video.mp4"') + ' && ' + S('get("story-0002").duration === 6'), 15000);
+    check('M2 direct: "Scan project folder" links a hand-copied video and reads its duration', true);
+    // People & Teams
+    await p.goto(HTTP2 + '#/people');
+    const pid = await p.eval(S('get("story-0001").personId'));
+    await p.type(`[data-testid=person-name-${pid}]`, 'Avery Q. Example');
+    await p.eval(`document.querySelector("[data-testid=person-name-${pid}]").dispatchEvent(new Event("change"))`);
+    check('M2: renaming a person updates their stories', await p.eval(S('get("story-0001").name')) === 'Avery Q. Example');
+    await p.click('[data-testid=save-project]'); await p.waitFor('document.querySelector("[data-testid=modal-confirm]")'); await p.click('[data-testid=modal-confirm]');
+    await p.waitFor(S('hasUnsaved() === false'), 15000);
+    // Reopen last folder after a reload
+    await p.goto(HTTP2 + '?reload=1#/dashboard'); // a real reload: the in-memory session is gone
+    await p.waitFor('document.querySelector("[data-testid=reopen-folder]")');
+    check('M2: nothing survives a reload except the folder shortcut', await p.eval(S('stories.length')) === 0);
+    check('M2: "Reopen" shortcut offered after reload', (await p.eval('document.querySelector("[data-testid=reopen-folder]").textContent')).includes('proj2'));
+    await p.click('[data-testid=reopen-folder]');
+    await p.waitFor(S('mode === "direct" && window.BTT.store.stories.length === 2'), 15000);
+    check('M2: reopened folder loads stories with saved media', await p.eval(S('assetState(window.BTT.store.get("story-0001"), "thumbnail")')) === 'saved' && await p.eval(S('get("story-0001").name')) === 'Avery Q. Example');
+    check('no console errors in direct media flow', p.errors.length === 0, p.errors.join('\n'));
+    await p.send('Page.close').catch(() => {});
+  } finally { server2.close(); }
 
   /* Static: no network */
   p = await newPage('#/dashboard');

@@ -16,8 +16,10 @@ The report contains no file names, folder names or transcript text.
 | Downloads (`<a download>` + Blob URLs) | Export | Copy the JSON from the preview on Save & Export |
 | Clipboard | Copy for Copilot, copying reports | A dialog with the text pre-selected for ⌘C |
 | `crypto.subtle` | SHA-256 of transcripts | A built-in JavaScript SHA-256 (identical results) |
+| Video decoding (`<video>`) + Canvas | Reading video length, previews, capturing thumbnails | Import a thumbnail image instead. Run the **Read a video and capture a frame** live test with a real Socialive MP4 |
+| IndexedDB | Remembering the last project folder (a shortcut only) | The Reopen button simply doesn't appear. Use Open Project Folder |
 
-**Not used:** the network (the page's Content-Security-Policy blocks it), browser storage (localStorage and IndexedDB), extensions, servers.
+**Not used:** the network (the page's Content-Security-Policy blocks it), browser storage for any content (only the folder shortcut is remembered), extensions, servers.
 
 ## What happens when folder writing is blocked
 
@@ -38,4 +40,6 @@ The report contains no file names, folder names or transcript text.
 | Download test: the file never appears | Downloads may be redirected or blocked. Check Chrome › Settings › Downloads, or ask IT |
 | The page is blank or won't open from disk | Your organization may block `file://` pages. The builder can also be opened from an approved internal web server (any `https://` address). Ask IT. Don't work around the block |
 | "Leave site? Changes may not be saved" | You have unsaved or unexported work. Save or export first. The builder keeps nothing after the tab closes |
+| Video won't attach ("Chrome could not read this video") | The codec isn't supported. Export from Socialive as MP4 (H.264). `.mov` files from some cameras won't play in Chrome |
+| Thumbnail capture fails but the video plays | Import a thumbnail image instead. Please also share the diagnostics report |
 | Transcript format looks wrong | Change **Format** on the story's Transcript card, then use **Copy masked format sample** and share it so the parser can be tuned |

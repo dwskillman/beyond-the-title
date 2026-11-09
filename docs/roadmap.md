@@ -23,15 +23,18 @@ repository, a summary, the known limitations, and a **pause for feedback** befor
 **Exit criteria:** the user runs the builder on the corporate Mac with the four real Socialive transcripts
 and reports back: the diagnostics report, the detected format, candidate quality, and whether save or export worked.
 
-## M2: Content management improvements
+## M2: Content management improvements (v0.2.0)
 
-- Tune the parser and analyzer against the four real Socialive transcripts, using the masked format samples
-- Bulk and folder transcript import
-- People & Teams management view (rename, merge, assign managers)
-- Video support: match MP4s to stories, read duration, preview, capture a poster frame (Canvas), save or export the thumbnail
-- VTT caption attachment and validation
-- Missing-asset and mismatch report; reopen the last project folder
-- Allow Published status once required assets are verified
+- [ ] Tune the parser and analyzer against the four real Socialive transcripts. **Waiting for a masked format sample.**
+- [x] Bulk import: whole Socialive export folders (picked or dropped), transcripts and media together
+- [x] Match videos, captions and images to stories by file name (story ID, transcript name, full name). Ties are never guessed; unmatched files go to an assign list
+- [x] Video: read duration and resolution, preview with captions, jump to the quote's timestamp
+- [x] Thumbnails: auto-captured from the video, recapture any frame (Canvas), or import an image
+- [x] VTT captions: attach and validate against the video length, or create from caption-style transcripts
+- [x] Publishing: allowed once video and thumbnail exist in the folder or are attached; save and export include media
+- [x] Media report: per-story asset status, missing files, unused files in the project folder, scan to link hand-copied files
+- [x] People & Teams page: rename (propagates to stories), assign managers, merge duplicates, delete unused
+- [x] Reopen the last project folder in one click (stores a folder shortcut only)
 
 ## M3: Employee-facing website (`site/`)
 

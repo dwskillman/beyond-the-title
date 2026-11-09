@@ -380,6 +380,20 @@ mark.quote-mark{background:#E3F4EA;color:inherit;border-radius:3px;box-shadow:in
 .valid-item svg{width:15px;height:15px;flex:none;margin-top:2px}
 .valid-item.error svg{color:var(--danger)} .valid-item.warning svg{color:var(--warning)} .valid-item.ok svg{color:var(--success)}
 .valid-item.todo{color:var(--ink-3)} .valid-item.todo svg{color:var(--ink-4)}
+.media-video{width:100%;border-radius:12px;background:#120F24;aspect-ratio:16/9;display:block}
+.media-empty{display:flex;gap:14px;align-items:center;flex-wrap:wrap;border:1.5px dashed var(--violet-300);border-radius:14px;padding:14px;background:var(--violet-50)}
+.media-empty .drop-icon{width:44px;height:44px;margin:0;border-radius:13px}
+.media-empty .drop-icon svg{width:20px;height:20px}
+.media-row{display:flex;gap:12px;align-items:center;padding-top:12px;border-top:1px solid var(--border)}
+.thumb-box{width:96px;aspect-ratio:16/9;border-radius:9px;overflow:hidden;background:linear-gradient(135deg,#F0EAFF,#DCCFFF);display:grid;place-items:center;color:var(--violet-500);flex:none}
+.thumb-box.sm{width:44px;aspect-ratio:1}
+.thumb-box img{width:100%;height:100%;object-fit:cover;display:block}
+.table-wrap{overflow-x:auto;margin:-16px -18px}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-4);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.table td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.table tr:last-child td{border-bottom:0}
+.table .input,.table .select{min-width:140px}
 .hero-art .mc{position:absolute;width:112px;height:74px;border-radius:14px;background:linear-gradient(135deg,#EDE6FF,#D6C8FF);box-shadow:0 10px 26px rgba(80,50,180,.18);border:4px solid #fff}
 .hero-art .mc1{left:0;top:30px;transform:rotate(-8deg)}
 .hero-art .mc2{left:44px;top:6px;z-index:2;background:linear-gradient(135deg,#C9B6FF,#9C80F0)}
@@ -413,6 +427,8 @@ pre.code{margin:0;max-height:420px;overflow:auto;background:#1E1A33;color:#E8E4F
 .test-row svg{width:15px;height:15px;flex:none;margin-top:1px}
 .progress{height:6px;border-radius:999px;background:var(--neutral-bg);overflow:hidden}
 .progress > span{display:block;height:100%;background:var(--violet-500);border-radius:inherit}
+.progress.indeterminate > span{width:35%;animation:indet 1.1s ease-in-out infinite}
+@keyframes indet{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
 
 /* ---------- toasts & modals ---------- */
 .toasts{position:fixed;right:20px;bottom:20px;z-index:300;display:flex;flex-direction:column;gap:10px;align-items:flex-end;pointer-events:none;max-width:min(420px,calc(100vw - 40px))}
@@ -773,7 +789,7 @@ Speaker 2: I'm really grateful to the engineers who stayed patient while I asked
 (() => {
 'use strict';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const GENERATOR = 'Beyond the Title Content Builder ' + VERSION;
 const SCHEMA_VERSION = 1;
 const MAX_TRANSCRIPT_BYTES = 5 * 1024 * 1024;
@@ -1779,7 +1795,7 @@ function makeStore() {
     transcripts: new Map(), persistedIds: new Set(), assetIndex: null, loadedHashes: {},
     mode: 'none', canWrite: false, dirHandle: null, fileIndex: null, folderName: '',
     changeSeq: 0, savedSeq: 0, exportedSeq: 0, dirtyIds: new Set(), registryDirty: false,
-    importLog: [], sessionImports: 0, lastSavedAt: null, lastExportedAt: null, copilotAck: false, listeners: new Set(), createdIds: new Set()
+    importLog: [], sessionImports: 0, lastSavedAt: null, lastExportedAt: null, copilotAck: false, listeners: new Set(), createdIds: new Set(), media: new Map(), unmatched: []
   };
 
   st.get = (id) => st.stories.find((s) => s.id === id) || null;
@@ -1817,6 +1833,11 @@ function makeStore() {
     s.id = newId;
     if (typeof s.transcript === 'string' && s.transcript.startsWith('stories/' + old + '/')) s.transcript = 'stories/' + newId + s.transcript.slice(('stories/' + old).length);
     const t = st.transcripts.get(old); if (t) { st.transcripts.delete(old); st.transcripts.set(newId, t); }
+    const m = st.media.get(old);
+    if (m) {
+      st.media.delete(old); st.media.set(newId, m);
+      for (const f of ['video', 'thumbnail', 'captions']) if (typeof s[f] === 'string' && s[f].startsWith('stories/' + old + '/')) s[f] = 'stories/' + newId + s[f].slice(('stories/' + old).length);
+    }
     st.dirtyIds.add(newId);
   };
 
@@ -1836,7 +1857,7 @@ function makeStore() {
   };
   st.remove = (id) => {
     const i = st.stories.findIndex((s) => s.id === id); if (i < 0) return false;
-    st.stories.splice(i, 1); st.transcripts.delete(id); st.dirtyIds.add(id); st.changeSeq++; st.emit();
+    st.stories.splice(i, 1); st.transcripts.delete(id); st.media.delete(id); st.dirtyIds.add(id); st.changeSeq++; st.emit();
     return true;
   };
 
@@ -1883,6 +1904,47 @@ function makeStore() {
     const upd = { name: (s.name || '').trim() || p.name, title: s.role || p.title || '', teamId: s.teamId || p.teamId || null, managerId: s.managerId || p.managerId || null };
     for (const k of Object.keys(upd)) if (p[k] !== upd[k]) { p[k] = upd[k]; st.registryDirty = true; }
   };
+
+  st.usage = (id) => {
+    let n = 0;
+    for (const s of st.stories) { if (s.personId === id) n++; if (s.managerId === id) n++; if (s.teamId === id) n++; }
+    for (const p of st.people) { if (p.managerId === id) n++; if (p.teamId === id) n++; }
+    for (const t of st.teams) if (t.managerId === id) n++;
+    return n;
+  };
+  st.storiesFor = (personId) => st.stories.filter((s) => s.personId === personId);
+  /** Rename a person everywhere their name is shown (story snapshots included). */
+  st.renamePerson = (id, name) => {
+    const p = st.person(id); if (!p || !name.trim()) return false;
+    p.name = name.trim(); st.registryDirty = true;
+    for (const s of st.stories) if (s.personId === id && s.name !== p.name) { s.name = p.name; st.touch(s); }
+    st.bump(); return true;
+  };
+  st.updateRecord = (kind, id, key, value) => {
+    const rec = kind === 'people' ? st.person(id) : st.team(id); if (!rec || rec[key] === value) return false;
+    rec[key] = value; st.registryDirty = true; st.bump(); return true;
+  };
+  /** Merge duplicate records: every reference to `fromId` now points at `toId`, then `fromId` is removed. */
+  st.mergeRecord = (kind, fromId, toId) => {
+    if (fromId === toId) return 0;
+    let n = 0;
+    const fix = (obj, key) => { if (obj[key] === fromId) { obj[key] = toId; n++; return true; } return false; };
+    for (const s of st.stories) {
+      let ch = false;
+      if (kind === 'people') { ch = fix(s, 'personId') || ch; ch = fix(s, 'managerId') || ch; if (ch && s.personId === toId) s.name = (st.person(toId) || {}).name || s.name; }
+      else ch = fix(s, 'teamId') || ch;
+      if (ch) st.touch(s);
+    }
+    for (const p of st.people) { if (kind === 'people') fix(p, 'managerId'); else fix(p, 'teamId'); }
+    if (kind === 'people') for (const t of st.teams) fix(t, 'managerId');
+    if (kind === 'people') { const from = st.person(fromId), to = st.person(toId); if (from && to && from.isManager) to.isManager = true; st.people = st.people.filter((p) => p.id !== fromId); }
+    else st.teams = st.teams.filter((t) => t.id !== fromId);
+    st.registryDirty = true; st.bump();
+    return n;
+  };
+  st.deleteRecord = (kind, id) => { if (st.usage(id)) return false; st[kind] = st[kind].filter((x) => x.id !== id); st.registryDirty = true; st.bump(); return true; };
+  st.addTeam = (name) => st.ensureTeam(name);
+  st.addPerson = (name, isManager) => { const id = st.nextPersonId(); st.people.push({ id, name: name.trim(), title: '', teamId: null, managerId: null, isManager: !!isManager }); st.registryDirty = true; st.bump(); return id; };
 
   /* ---------- JSON (de)serialization ---------- */
   function buildDoc(kind, list, timestamp) {
@@ -1931,12 +1993,13 @@ function makeStore() {
   st.load = ({ stories, people, teams }) => {
     const drafts = stories ? st.stories.filter((s) => !st.persistedIds.has(s.id)) : [];
     const draftTs = new Map(drafts.map((d) => [d, st.transcripts.get(d.id)]));
+    const draftMedia = new Map(drafts.map((d) => [d, st.media.get(d.id)]));
     const prevPeople = st.people, prevTeams = st.teams;
     const renumbered = [];
     if (stories) {
       st.docs.stories = stories.doc; st.storiesFormat = stories.format;
       st.stories = stories.list.slice(); st.persistedIds = new Set(st.stories.map((s) => s.id).filter(Boolean));
-      st.transcripts = new Map(); st.dirtyIds = new Set();
+      st.transcripts = new Map(); st.media = new Map(); st.dirtyIds = new Set();
     }
     if (people) { st.docs.people = people.doc; st.people = people.list.slice(); }
     if (teams) { st.docs.teams = teams.doc; st.teams = teams.list.slice(); }
@@ -1945,7 +2008,8 @@ function makeStore() {
     if (people) for (const p of prevPeople) if (referenced.has(p.id) && !st.person(p.id)) { st.people.push(p); st.registryDirty = true; }
     if (teams) for (const t of prevTeams) if (referenced.has(t.id) && !st.team(t.id)) { st.teams.push(t); st.registryDirty = true; }
     for (const d of drafts) {
-      const t = draftTs.get(d);
+      const t = draftTs.get(d), md = draftMedia.get(d);
+      if (md && stories) st.media.set(d.id, md);
       if (st.stories.some((s) => s.id === d.id)) { const old = d.id; const nid = st.nextStoryId(); st.transcripts.set(old, t); st.renumber(d, nid); st.transcripts.delete(old); renumbered.push([old, nid]); }
       const p = st.person(d.personId);
       if (p && !eqName(p.name, d.name) && d.name) d.personId = st.nextPersonId();
@@ -1961,13 +2025,25 @@ function makeStore() {
 
   /* ---------- assets ---------- */
   st.assetExists = (p) => (st.assetIndex ? st.assetIndex.has(p) : null);
+  /** 'none' | 'pending' (attached, written on save/export) | 'saved' (in the folder) | 'missing' | 'unknown' (no folder open) */
+  st.assetState = (s, field) => {
+    const p = s[field];
+    if (!p) return 'none';
+    const m = st.media.get(s.id);
+    if (m && m[field]) return 'pending';
+    const e = st.assetExists(p);
+    return e === null ? 'unknown' : e ? 'saved' : 'missing';
+  };
   st.publishBlockers = (s) => {
     const out = [];
-    if (!s.video) out.push('No video yet. Video support arrives in Milestone 2.');
-    else if (st.assetExists(s.video) === null) out.push('Open the project folder so the builder can confirm the video file exists.');
-    else if (!st.assetExists(s.video)) out.push('Video file not found in the project folder: ' + s.video);
-    if (!s.thumbnail) out.push('No thumbnail yet.');
-    else if (st.assetExists(s.thumbnail) === false) out.push('Thumbnail file not found in the project folder: ' + s.thumbnail);
+    const v = st.assetState(s, 'video'), t = st.assetState(s, 'thumbnail');
+    if (v === 'none') out.push('No video attached yet.');
+    else if (v === 'unknown') out.push('Open the project folder so the builder can confirm the video file exists.');
+    else if (v === 'missing') out.push('Video file not found in the project folder: ' + s.video);
+    if (t === 'none') out.push('No thumbnail yet. Capture a frame from the video.');
+    else if (t === 'unknown') out.push('Open the project folder so the builder can confirm the thumbnail exists.');
+    else if (t === 'missing') out.push('Thumbnail file not found in the project folder: ' + s.thumbnail);
+    if (s.captions && st.assetState(s, 'captions') === 'missing') out.push('Captions file not found in the project folder: ' + s.captions);
     return out;
   };
 
@@ -2004,6 +2080,10 @@ function makeStore() {
     if (s.teamId && !st.team(s.teamId)) warnings.push({ field: 'teamId', msg: `Team "${s.teamId}" isn't in teams.json.` });
     if (s.managerId && !st.person(s.managerId)) warnings.push({ field: 'managerId', msg: `Manager "${s.managerId}" isn't in people.json.` });
     if (s.transcript && st.assetIndex && !st.assetIndex.has(s.transcript) && !(ts && ts.bytes)) warnings.push({ field: 'transcript', msg: 'The transcript file is missing from the project folder.' });
+    for (const f of ['video', 'thumbnail', 'captions']) if (status !== 'published' && st.assetState(s, f) === 'missing') warnings.push({ field: f, msg: `The ${f} file is missing from the project folder: ${s[f]}` });
+    if (s.video && /\.mov$/i.test(s.video)) warnings.push({ field: 'video', msg: 'QuickTime .mov files may not play in every browser. MP4 (H.264) is recommended.' });
+    const mi = st.media.get(s.id);
+    if (mi && mi.captions && mi.captions.check && mi.captions.check.warnings.length) for (const w of mi.captions.check.warnings) warnings.push({ field: 'captions', msg: w });
     if (status === 'published') {
       for (const b of st.publishBlockers(s)) errors.push({ field: 'video', msg: b });
       if (!s.captions) warnings.push({ field: 'captions', msg: 'No captions file. Captions are strongly recommended for accessibility.' });
@@ -2017,7 +2097,7 @@ function makeStore() {
       const v = st.validate(s);
       if (v.errors.length || v.warnings.length) c.withIssues++;
       c.errors += v.errors.length; c.warnings += v.warnings.length;
-      if (!s.video) c.missingVideo++;
+      if (!s.video || ['missing', 'unknown'].includes(st.assetState(s, 'video')) && st.assetIndex) c.missingVideo++;
     }
     return c;
   };
@@ -2047,35 +2127,63 @@ function makeTranscriptState({ fileName, bytes, text, encoding, sha256, speaker 
 }
 
 /* ==========================================================================
-   Zip: minimal store-only ZIP writer/reader (CRC32), for the update package
+   Zip: store-only ZIP writer/reader (CRC32). Large files (videos) are streamed
+   from disk for the CRC and never copied into memory.
    ========================================================================== */
 const Zip = (() => {
   const TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-  function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = TABLE[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  const update = (c, b) => { for (let i = 0; i < b.length; i++) c = TABLE[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return c; };
+  function crc32(b) { return (update(0xFFFFFFFF, b) ^ 0xFFFFFFFF) >>> 0; }
+  async function crcOf(data) {
+    if (data instanceof Uint8Array) return crc32(data);
+    let c = 0xFFFFFFFF; const r = data.stream().getReader();
+    for (;;) { const { done, value } = await r.read(); if (done) break; c = update(c, value); }
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
   const dosTime = (d) => ((d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2)) & 0xFFFF;
   const dosDate = (d) => (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+  function headers(name, size, crc, offset, date) {
+    const lh = new Uint8Array(30 + name.length), dv = new DataView(lh.buffer);
+    dv.setUint32(0, 0x04034b50, true); dv.setUint16(4, 20, true); dv.setUint16(6, 0x0800, true); dv.setUint16(8, 0, true);
+    dv.setUint16(10, dosTime(date), true); dv.setUint16(12, dosDate(date), true); dv.setUint32(14, crc, true);
+    dv.setUint32(18, size, true); dv.setUint32(22, size, true); dv.setUint16(26, name.length, true); dv.setUint16(28, 0, true);
+    lh.set(name, 30);
+    const ch = new Uint8Array(46 + name.length), cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 0x0314, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true); cv.setUint16(10, 0, true);
+    cv.setUint16(12, dosTime(date), true); cv.setUint16(14, dosDate(date), true); cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true); cv.setUint32(24, size, true); cv.setUint16(28, name.length, true);
+    cv.setUint32(38, (0o100644 << 16) >>> 0, true); cv.setUint32(42, offset, true);
+    ch.set(name, 46);
+    return { lh, ch };
+  }
+  function trailer(count, cdSize, cdOffset) {
+    const end = new Uint8Array(22), ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, count, true); ev.setUint16(10, count, true);
+    ev.setUint32(12, cdSize, true); ev.setUint32(16, cdOffset, true);
+    return end;
+  }
+  /** files: [{ path, data: string | Uint8Array | Blob }] → Blob */
+  async function createBlob(files, date = new Date()) {
+    const enc = new TextEncoder(), parts = [], central = []; let offset = 0;
+    for (const f of files) {
+      const name = enc.encode(f.path), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+      const size = data instanceof Uint8Array ? data.length : data.size;
+      if (offset + size > 0xFFFFFFFF - 1e6) throw new Error('The package would be larger than 4 GB. Export without videos and copy them by hand.');
+      const { lh, ch } = headers(name, size, await crcOf(data), offset, date);
+      parts.push(lh, data); central.push(ch); offset += lh.length + size;
+    }
+    const cdSize = central.reduce((n, c) => n + c.length, 0);
+    return new Blob([...parts, ...central, trailer(files.length, cdSize, offset)], { type: 'application/zip' });
+  }
   function createBytes(files, date = new Date()) {
     const enc = new TextEncoder(), chunks = [], central = []; let offset = 0;
     for (const f of files) {
-      const name = enc.encode(f.path), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data);
-      const lh = new Uint8Array(30 + name.length), dv = new DataView(lh.buffer);
-      dv.setUint32(0, 0x04034b50, true); dv.setUint16(4, 20, true); dv.setUint16(6, 0x0800, true); dv.setUint16(8, 0, true);
-      dv.setUint16(10, dosTime(date), true); dv.setUint16(12, dosDate(date), true); dv.setUint32(14, crc, true);
-      dv.setUint32(18, data.length, true); dv.setUint32(22, data.length, true); dv.setUint16(26, name.length, true); dv.setUint16(28, 0, true);
-      lh.set(name, 30);
-      const ch = new Uint8Array(46 + name.length), cv = new DataView(ch.buffer);
-      cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 0x0314, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true); cv.setUint16(10, 0, true);
-      cv.setUint16(12, dosTime(date), true); cv.setUint16(14, dosDate(date), true); cv.setUint32(16, crc, true);
-      cv.setUint32(20, data.length, true); cv.setUint32(24, data.length, true); cv.setUint16(28, name.length, true);
-      cv.setUint32(38, (0o100644 << 16) >>> 0, true); cv.setUint32(42, offset, true);
-      ch.set(name, 46);
+      const name = enc.encode(f.path), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+      const { lh, ch } = headers(name, data.length, crc32(data), offset, date);
       chunks.push(lh, data); central.push(ch); offset += lh.length + data.length;
     }
     const cdSize = central.reduce((n, c) => n + c.length, 0);
-    const end = new Uint8Array(22), ev = new DataView(end.buffer);
-    ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
-    ev.setUint32(12, cdSize, true); ev.setUint32(16, offset, true);
-    const all = [...chunks, ...central, end], out = new Uint8Array(all.reduce((n, c) => n + c.length, 0));
+    const all = [...chunks, ...central, trailer(files.length, cdSize, offset)], out = new Uint8Array(all.reduce((n, c) => n + c.length, 0));
     let p = 0; for (const c of all) { out.set(c, p); p += c.length; }
     return out;
   }
@@ -2095,8 +2203,197 @@ const Zip = (() => {
     }
     return out;
   }
-  return { createBytes, read, crc32 };
+  return { createBlob, createBytes, read, crc32 };
 })();
+
+/* ==========================================================================
+   Media: videos, thumbnails, captions. Matching by file name, duration from
+   the browser's own decoder, frame capture with <canvas>. Attached files stay
+   in memory until they are saved to the project folder or exported.
+   ========================================================================== */
+const Media = (() => {
+  const VIDEO_RE = /\.(mp4|m4v|mov)$/i, CAPTION_RE = /\.vtt$/i, IMAGE_RE = /\.(jpe?g|png|webp)$/i, TRANSCRIPT_RE = /\.txt$/i;
+  const kindOf = (name) => VIDEO_RE.test(name) ? 'video' : CAPTION_RE.test(name) ? 'captions' : IMAGE_RE.test(name) ? 'thumbnail' : TRANSCRIPT_RE.test(name) ? 'transcript' : null;
+  const ext = (name) => ((String(name).match(/\.([a-z0-9]+)$/i) || [])[1] || '').toLowerCase();
+  const NOISE = /\b(transcripts?|transcription|captions?|subtitles?|subs|cc|video|final|export(ed)?|socialive|recording|rec|clip|edit(ed)?|copy|en|en us|eng|\d{3,4}p|hd|v\d+|thumbnail|thumb|poster)\b/g;
+  function stem(name) {
+    return String(name || '').replace(/\.[a-z0-9]+$/i, '').toLowerCase().replace(/[_\-.()[\]]+/g, ' ').replace(NOISE, ' ')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function score(story, fileName) {
+    const fs = stem(fileName), raw = String(fileName).toLowerCase();
+    if (story.id && new RegExp('(^|[^a-z0-9])' + story.id + '([^a-z0-9]|$)').test(raw)) return 100;
+    const ts = stem(story.source && story.source.transcriptFile);
+    if (ts && fs && ts === fs) return 90;
+    if (ts && fs && Math.min(ts.length, fs.length) >= 4 && (fs.includes(ts) || ts.includes(fs))) return 70;
+    const nameToks = Util.words(String(story.name || '').toLowerCase()).filter((t) => t.length >= 2);
+    const ftoks = new Set(fs.split(' '));
+    if (nameToks.length && nameToks.every((t) => ftoks.has(t)) && (nameToks.length >= 2 || nameToks[0].length >= 4)) return 60;
+    return 0;
+  }
+  /** → { matched: [{ file, kind, story, score }], unmatched: [{ file, kind, reason, candidates }] } */
+  function match(stories, files) {
+    const matched = [], unmatched = [];
+    for (const file of files) {
+      const kind = kindOf(file.name);
+      if (!kind || kind === 'transcript') continue;
+      const scored = stories.map((s) => ({ s, sc: score(s, file.name) })).filter((x) => x.sc > 0).sort((a, b) => b.sc - a.sc);
+      if (!scored.length) { unmatched.push({ file, kind, reason: 'No story has a matching name.' }); continue; }
+      const top = scored.filter((x) => x.sc === scored[0].sc);
+      if (top.length > 1) { unmatched.push({ file, kind, reason: `Matches more than one story (${top.map((x) => x.s.id).join(', ')}).`, candidates: top.map((x) => x.s.id) }); continue; }
+      matched.push({ file, kind, story: scored[0].s, score: scored[0].sc });
+    }
+    const seen = new Set(), keep = [];
+    for (const m of matched.sort((a, b) => b.score - a.score)) {
+      const k = m.story.id + '|' + m.kind;
+      if (seen.has(k)) unmatched.push({ file: m.file, kind: m.kind, reason: `Another ${m.kind} file also matches ${m.story.id}.`, candidates: [m.story.id] });
+      else { seen.add(k); keep.push(m); }
+    }
+    return { matched: keep, unmatched };
+  }
+
+  function waitFor(el, ok, bad, ms) {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => { cleanup(); reject(new Error('Timed out reading the video.')); }, ms);
+      const y = () => { cleanup(); resolve(); }, n = () => { cleanup(); reject(new Error('Chrome could not read this video. MP4 with H.264 video is recommended.')); };
+      const cleanup = () => { clearTimeout(t); el.removeEventListener(ok, y); el.removeEventListener(bad, n); };
+      el.addEventListener(ok, y); el.addEventListener(bad, n);
+    });
+  }
+  async function probe(file) {
+    const url = URL.createObjectURL(file), v = document.createElement('video');
+    v.preload = 'metadata'; v.muted = true;
+    try {
+      const p = waitFor(v, 'loadedmetadata', 'error', 20000); v.src = url; await p;
+      if (!isFinite(v.duration) || !v.duration) return { ok: false, error: 'Chrome could not tell how long this video is.' };
+      if (!v.videoWidth) return { ok: false, error: 'This file has no video picture Chrome can show. MP4 with H.264 video is recommended.' };
+      return { ok: true, duration: Math.round(v.duration * 10) / 10, width: v.videoWidth, height: v.videoHeight };
+    } catch (e) { return { ok: false, error: e.message }; }
+    finally { v.removeAttribute('src'); v.load(); URL.revokeObjectURL(url); }
+  }
+  function frameToJpeg(video, maxW = 1280) {
+    const w = video.videoWidth, hh = video.videoHeight;
+    if (!w || !hh) return Promise.reject(new Error('The video has no picture at this point.'));
+    const scale = Math.min(1, maxW / w), c = document.createElement('canvas');
+    c.width = Math.round(w * scale); c.height = Math.round(hh * scale);
+    c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+    return new Promise((resolve, reject) => { try { c.toBlob((b) => (b ? resolve(b) : reject(new Error('The frame could not be encoded as JPEG.'))), 'image/jpeg', 0.86); } catch (e) { reject(e); } });
+  }
+  async function captureAt(file, time) {
+    const url = URL.createObjectURL(file), v = document.createElement('video');
+    v.muted = true; v.preload = 'auto'; v.playsInline = true;
+    try {
+      const loaded = waitFor(v, 'loadeddata', 'error', 20000); v.src = url; await loaded;
+      const t = Math.max(0, Math.min(time, (v.duration || 0) - 0.1));
+      if (Math.abs(v.currentTime - t) > 0.01) { const sk = waitFor(v, 'seeked', 'error', 20000); v.currentTime = t; await sk; }
+      return await frameToJpeg(v);
+    } finally { v.removeAttribute('src'); v.load(); URL.revokeObjectURL(url); }
+  }
+
+  function checkVtt(text, duration) {
+    const errors = [], warnings = [];
+    const t = String(text || '').replace(/^﻿/, '');
+    if (!/^WEBVTT(\s|$)/.test(t)) errors.push('Not a WebVTT file. The first line must be "WEBVTT".');
+    const cues = Parser.parse(t, 'cue').segments.filter((x) => x.start !== null);
+    if (!cues.length) errors.push('No caption cues found.');
+    const lastEnd = cues.reduce((m, c) => Math.max(m, c.end || c.start || 0), 0);
+    if (duration && lastEnd > duration + 1) warnings.push(`The captions run to ${Util.clock(lastEnd)}, past the end of the video (${Util.clock(duration)}). They may belong to a different recording.`);
+    else if (duration && duration > 20 && cues.length && lastEnd < duration * 0.5) warnings.push(`The captions end at ${Util.clock(lastEnd)} but the video is ${Util.clock(duration)} long. Check they belong to this video.`);
+    return { ok: !errors.length, errors, warnings, cues: cues.length, lastEnd };
+  }
+  /** Only for transcripts whose segments have both start and end times (caption-style exports). */
+  function vttFromTranscript(ts) {
+    if (!ts || !ts.parse) return null;
+    const all = ts.parse.segments, segs = all.filter((x) => x.start !== null && x.end !== null && x.end > x.start);
+    if (!segs.length || segs.length < all.length * 0.8) return null;
+    const f = (x) => { const ms = Math.round(x * 1000), p = (n, l = 2) => String(n).padStart(l, '0'); return `${p(Math.floor(ms / 3600000))}:${p(Math.floor((ms % 3600000) / 60000))}:${p(Math.floor((ms % 60000) / 1000))}.${p(ms % 1000, 3)}`; };
+    const esc = (x) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/-->/g, '→');
+    return 'WEBVTT\n\n' + segs.map((x) => `${f(x.start)} --> ${f(x.end)}\n${x.speaker ? '<v ' + esc(x.speaker) + '>' : ''}${esc(x.text)}`).join('\n\n') + '\n';
+  }
+
+  const urls = new Map();
+  function pendingUrl(store, id, kind) {
+    const m = store.media.get(id); const a = m && m[kind]; if (!a) return null;
+    if (!a.url) a.url = kind === 'captions' ? URL.createObjectURL(new Blob([a.text], { type: 'text/vtt' })) : URL.createObjectURL(kind === 'video' ? a.file : a.blob);
+    return a.url;
+  }
+  function drop(store, id, kind) {
+    const m = store.media.get(id); if (!m || !m[kind]) return;
+    if (m[kind].url) URL.revokeObjectURL(m[kind].url);
+    delete m[kind]; if (!m.video && !m.thumbnail && !m.captions) store.media.delete(id);
+  }
+  /** Attach a file to a story (pending until saved/exported). */
+  async function attach(store, story, kind, file, { autoThumb = true } = {}) {
+    const warnings = [];
+    if (kind === 'video') {
+      const info = await probe(file);
+      if (!info.ok) return { ok: false, error: info.error };
+      drop(store, story.id, 'video');
+      const m = store.media.get(story.id) || {}; store.media.set(story.id, m);
+      m.video = { file, name: file.name, size: file.size, duration: info.duration, width: info.width, height: info.height };
+      store.set(story, 'video', `stories/${story.id}/video.${ext(file.name) || 'mp4'}`);
+      store.set(story, 'duration', info.duration);
+      if (m.captions) m.captions.check = checkVtt(m.captions.text, info.duration);
+      const thumbState = store.assetState(story, 'thumbnail');
+      if (autoThumb && (thumbState === 'none' || (m.thumbnail && m.thumbnail.source === 'auto'))) {
+        const t = Math.min(3, info.duration * 0.2);
+        try { await setThumbnail(store, story, await captureAt(file, t), 'auto', t); }
+        catch (e) { warnings.push('A thumbnail couldn\'t be captured automatically (' + explainError(e) + '). Capture one from the video, or import an image.'); }
+      }
+    } else if (kind === 'captions') {
+      const text = await file.text();
+      const check = checkVtt(text, story.duration || null);
+      if (!check.ok) return { ok: false, error: check.errors.join(' ') };
+      setCaptions(store, story, text, file.name, check);
+      warnings.push(...check.warnings);
+    } else if (kind === 'thumbnail') {
+      if (!IMAGE_RE.test(file.name) && !/^image\/(jpeg|png|webp)$/.test(file.type)) return { ok: false, error: 'Use a JPEG, PNG or WebP image.' };
+      await setThumbnail(store, story, file, 'file', null, ext(file.name) === 'jpeg' ? 'jpg' : ext(file.name) || 'jpg');
+    } else return { ok: false, error: 'Unsupported file type.' };
+    store.touch(story);
+    return { ok: true, warnings };
+  }
+  async function setThumbnail(store, story, blob, source, time, extension = 'jpg') {
+    drop(store, story.id, 'thumbnail');
+    const m = store.media.get(story.id) || {}; store.media.set(story.id, m);
+    m.thumbnail = { blob, source, time, size: blob.size };
+    store.set(story, 'thumbnail', `stories/${story.id}/thumbnail.${extension}`);
+    store.touch(story);
+  }
+  function setCaptions(store, story, text, name, check) {
+    drop(store, story.id, 'captions');
+    const m = store.media.get(story.id) || {}; store.media.set(story.id, m);
+    m.captions = { text, name, check: check || checkVtt(text, story.duration || null) };
+    store.set(story, 'captions', `stories/${story.id}/captions.vtt`);
+    store.touch(story);
+  }
+  function remove(store, story, kind) {
+    drop(store, story.id, kind);
+    store.set(story, kind, null);
+    if (kind === 'video') store.set(story, 'duration', null);
+    store.touch(story);
+  }
+  return { kindOf, ext, stem, score, match, probe, captureAt, frameToJpeg, checkVtt, vttFromTranscript, attach, setThumbnail, setCaptions, remove, pendingUrl, drop, VIDEO_RE, CAPTION_RE, IMAGE_RE };
+})();
+
+/* FolderMemory:BEGIN. The ONLY use of browser storage: one folder shortcut (a
+   FileSystemDirectoryHandle) so "Reopen last project" works. No content, no
+   names beyond the folder's own name, no transcripts. */
+const FolderMemory = (() => {
+  const DB = 'btt-builder', STORE = 'handles', KEY = 'lastProject';
+  const open = () => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  async function tx(mode, fn) {
+    const db = await open();
+    try { return await new Promise((res, rej) => { const t = db.transaction(STORE, mode), req = fn(t.objectStore(STORE)); t.oncomplete = () => res(req ? req.result : undefined); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); }); }
+    finally { db.close(); }
+  }
+  return {
+    async save(handle) { try { await tx('readwrite', (st) => st.put(handle, KEY)); return true; } catch (e) { return false; } },
+    async get() { try { const h0 = await tx('readonly', (st) => st.get(KEY)); return h0 && h0.kind === 'directory' ? h0 : null; } catch (e) { return null; } },
+    async forget() { try { await tx('readwrite', (st) => st.delete(KEY)); } catch (e) { /* ignore */ } }
+  };
+})();
+/* FolderMemory:END */
 
 /* ==========================================================================
    ProjectIO: folder access (direct / read-only), save, export
@@ -2256,6 +2553,15 @@ const ProjectIO = (() => {
       }
       plan.push({ rel: s.transcript, action: 'create', data: t.bytes, kind: 'bytes', sha: t.sha256 });
     }
+    for (const s of store.stories) {
+      const m = store.media.get(s.id); if (!m) continue;
+      for (const media of ['video', 'thumbnail', 'captions']) {
+        const a = m[media]; if (!a || !s[media] || !isSafeRelPath(s[media])) continue;
+        const cur = await readFile(root, s[media]);
+        const data = media === 'captions' ? a.text : media === 'video' ? a.file : a.blob;
+        plan.push({ rel: s[media], action: cur ? 'update' : 'create', data, kind: media === 'captions' ? 'text' : 'blob', media, storyId: s.id, size: typeof data === 'string' ? data.length : data.size, replaces: !!cur });
+      }
+    }
     return plan;
   }
 
@@ -2263,8 +2569,9 @@ const ProjectIO = (() => {
     const root = store.dirHandle, done = [], failed = [];
     const writes = plan.filter((p) => p.action === 'create' || p.action === 'update');
     const ordered = [
-      ...writes.filter((p) => p.action === 'update').map((p) => ({ rel: p.backup, data: p.oldText, kind: 'backup', of: p.rel })),
+      ...writes.filter((p) => p.backup).map((p) => ({ rel: p.backup, data: p.oldText, kind: 'backup', of: p.rel })),
       ...writes.filter((p) => p.kind === 'bytes'),
+      ...writes.filter((p) => p.kind === 'blob' || p.kind === 'text'),
       ...writes.filter((p) => p.kind === 'json')
     ];
     for (let i = 0; i < ordered.length; i++) {
@@ -2274,6 +2581,10 @@ const ProjectIO = (() => {
         const back = await readFile(root, w.rel);
         if (!back) throw new Error('File not found after writing.');
         if (w.kind === 'bytes') { const h = await sha256Hex(new Uint8Array(await back.arrayBuffer())); if (h !== w.sha) throw new Error('Read-back check failed (content differs).'); }
+        else if (w.kind === 'blob') {
+          if (back.size !== w.data.size) throw new Error(`Read-back check failed (expected ${w.data.size} bytes, found ${back.size}).`);
+          if (w.data.size <= 8 * 1024 * 1024 && await sha256Hex(new Uint8Array(await back.arrayBuffer())) !== await sha256Hex(new Uint8Array(await w.data.arrayBuffer()))) throw new Error('Read-back check failed (content differs).');
+        }
         else { const t = await back.text(); if (t !== w.data) throw new Error('Read-back check failed (content differs).'); if (w.kind === 'json') JSON.parse(t); }
         done.push(w);
       } catch (e) {
@@ -2287,6 +2598,7 @@ const ProjectIO = (() => {
         if (w.kind === 'json') store.loadedHashes[w.rel] = await sha256Hex(w.data);
       }
       for (const s of store.stories) { const t = store.transcripts.get(s.id); if (t && t.bytes && store.assetIndex && store.assetIndex.has(s.transcript)) { t.persisted = true; } }
+      for (const w of done) if (w.media) Media.drop(store, w.storyId, w.media);
       store.persistedIds = new Set(store.stories.map((s) => s.id));
       store.savedSeq = store.changeSeq; store.dirtyIds.clear(); store.registryDirty = false; store.lastSavedAt = Util.nowIso();
       store.emit();
@@ -2294,16 +2606,28 @@ const ProjectIO = (() => {
     return { done, failed, skipped: [], stoppedEarly: false };
   }
 
-  function packageFiles(store) {
-    const ts = Util.nowIso(), files = [];
+  function packageFiles(store, { includeVideos = true } = {}) {
+    const ts = Util.nowIso(), files = [], skippedVideos = [];
     for (const kind of DATA_FILES) files.push({ path: `data/${kind}.json`, data: store.serialize(kind, ts) });
-    const transcripts = [];
+    const transcripts = [], media = [];
     for (const s of store.stories) {
       const t = store.transcripts.get(s.id);
       if (!t || !t.bytes || !isSafeRelPath(s.transcript)) continue;
       if (store.assetIndex && store.assetIndex.has(s.transcript)) continue;
       files.push({ path: s.transcript, data: t.bytes }); transcripts.push(s.transcript);
     }
+    let mediaBytes = 0;
+    for (const s of store.stories) {
+      const m = store.media.get(s.id); if (!m) continue;
+      for (const kind of ['video', 'thumbnail', 'captions']) {
+        const a = m[kind]; if (!a || !s[kind] || !isSafeRelPath(s[kind])) continue;
+        if (kind === 'video' && !includeVideos) { skippedVideos.push({ path: s[kind], name: a.name }); continue; }
+        const data = kind === 'captions' ? a.text : kind === 'video' ? a.file : a.blob;
+        files.push({ path: s[kind], data }); media.push(s[kind]); mediaBytes += typeof data === 'string' ? data.length : data.size;
+      }
+    }
+    const storyFiles = [...transcripts, ...media];
+    const folders = [...new Set(storyFiles.map((p) => p.split('/').slice(0, 2).join('/')))];
     const lines = [
       'Beyond the Title: project update package',
       `Created ${new Date().toLocaleString()} by ${GENERATOR}`,
@@ -2311,21 +2635,24 @@ const ProjectIO = (() => {
       'HOW TO APPLY THIS UPDATE',
       '1. Unzip this package (double-click it in Finder).',
       '2. Open your Beyond the Title project folder.',
-      '3. Copy the files inside this package\'s "data" folder into your project\'s "data" folder.',
+      '3. Copy the three files inside this package\'s "data" folder into your project\'s "data" folder.',
       '   Choose "Replace" when Finder asks. Keep a copy of your old stories.json first if you want a backup.',
-      transcripts.length ? '4. Open this package\'s "stories" folder. Copy each story folder inside it (for example "story-0003")' : '4. (No new transcript files in this package.)',
-      transcripts.length ? '   into your project\'s "stories" folder.' : '',
-      transcripts.length ? '   Do NOT replace your whole "stories" folder: that would delete videos and other files already there.' : '',
+      folders.length ? '4. For each folder inside this package\'s "stories" folder:' : '4. (No story files in this package.)',
+      folders.length ? '   - If your project has no folder with that name yet, copy the whole folder into your project\'s "stories" folder.' : '',
+      folders.length ? '   - If it already exists, open both folders and copy the FILES across. Do not replace the folder itself:' : '',
+      folders.length ? '     Finder\'s "Replace" would delete files already in it (such as transcripts or videos).' : '',
+      skippedVideos.length ? '5. Videos were left out of this package. Copy each one into place yourself and rename it:' : '',
+      ...skippedVideos.map((v) => `   - ${v.name}  →  ${v.path}`),
       '',
       'FILES IN THIS PACKAGE',
       `- data/stories.json  (${Util.plural(store.stories.length, 'story', 'stories')})`,
       `- data/people.json   (${Util.plural(store.people.length, 'person', 'people')})`,
       `- data/teams.json    (${Util.plural(store.teams.length, 'team')})`,
-      ...transcripts.map((p) => '- ' + p),
+      ...storyFiles.map((p) => '- ' + p),
       ''
-    ].filter((l, i, a) => !(l === '' && a[i - 1] === ''));
+    ].filter((l, i, a) => l !== '' || (a[i - 1] !== '' && i > 0));
     files.push({ path: 'HOW-TO-APPLY.txt', data: lines.join('\n') });
-    return { files, transcripts };
+    return { files, transcripts, media, mediaBytes, skippedVideos, folders };
   }
 
   return { loadFromEntries, loadFromHandle, loadInto, initializeFolder, planSave, executeSave, packageFiles, readFile, writeFile, indexHandle, sameIgnoringMeta };
@@ -2375,10 +2702,10 @@ const Diagnostics = (() => {
     { id: 'decoder', group: 'core', label: 'Text encodings', run: () => { try { new TextDecoder('windows-1252'); new TextDecoder('utf-16le'); return pass('UTF-8, UTF-16 and Windows-1252 supported.'); } catch (e) { return warn('Some encodings are unsupported.'); } } },
     { id: 'dialog', group: 'core', label: 'Dialogs', run: () => typeof HTMLDialogElement === 'function' ? pass('Available.') : fail('Not available.') },
     { id: 'csp', group: 'core', label: 'Network access', run: () => document.querySelector('meta[http-equiv="Content-Security-Policy"]') ? pass('Blocked by this page\'s Content-Security-Policy. The builder cannot send data anywhere.') : warn('No Content-Security-Policy found.') },
-    { id: 'storage', group: 'core', label: 'Browser storage', run: () => info('Not used. Transcripts stay in memory and are cleared when you close the tab.') },
-    { id: 'canvas', group: 'later', label: 'Thumbnail capture (Milestone 2)', run: () => { const c = document.createElement('canvas'); return (c.getContext && c.getContext('2d') && typeof c.toBlob === 'function') ? pass('Canvas available.') : warn('Canvas unavailable.'); } },
-    { id: 'mp4', group: 'later', label: 'MP4 / H.264 playback (Milestone 2)', run: () => { const v = document.createElement('video'); const res = v.canPlayType ? v.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"') : ''; return res ? pass(`Supported ("${res}").`) : warn('Not reported as supported.'); } },
-    { id: 'vtt', group: 'later', label: 'WebVTT captions (Milestone 2)', run: () => typeof HTMLTrackElement === 'function' ? pass('Supported.') : warn('Not supported.') }
+    { id: 'storage', group: 'core', label: 'Browser storage', run: () => info('Only a shortcut to the last project folder is remembered, so you can reopen it in one click. Transcripts, videos and story data stay in memory and are cleared when you close the tab.') },
+    { id: 'canvas', group: 'later', label: 'Thumbnail capture', run: () => { const c = document.createElement('canvas'); return (c.getContext && c.getContext('2d') && typeof c.toBlob === 'function') ? pass('Canvas available.') : warn('Canvas unavailable.'); } },
+    { id: 'mp4', group: 'later', label: 'MP4 / H.264 playback', run: () => { const v = document.createElement('video'); const res = v.canPlayType ? v.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"') : ''; return res ? pass(`Supported ("${res}").`) : warn('Not reported as supported.'); } },
+    { id: 'vtt', group: 'later', label: 'WebVTT captions', run: () => typeof HTMLTrackElement === 'function' ? pass('Supported.') : warn('Not supported.') }
   ];
 
   const TESTS = [
@@ -2423,6 +2750,14 @@ const Diagnostics = (() => {
         try { Util.download('btt-download-test.json', JSON.stringify({ test: 'Beyond the Title download test', createdAt: Util.nowIso() }, null, 2) + '\n'); }
         catch (e) { return fail(`${e.name}: ${explainError(e)}`); }
         return r('ask', 'Did a file named btt-download-test.json appear in your Downloads folder? You can delete it afterwards.');
+      } },
+    { id: 'tVideo', label: 'Read a video and capture a frame', desc: 'Choose any MP4 (a Socialive video is ideal). The builder reads its length and captures one frame. Nothing is saved.', run: async () => {
+        const files = await Util.pickFiles({ accept: '.mp4,.m4v,.mov,video/*', multiple: false });
+        if (!files || !files[0]) return warn('Cancelled.');
+        const info = await Media.probe(files[0]);
+        if (!info.ok) return fail(info.error);
+        try { const b = await Media.captureAt(files[0], Math.min(2, info.duration / 2)); return pass(`Video readable: ${Util.clock(info.duration)} at ${info.width}×${info.height}. Frame capture works (${Util.formatBytes(b.size)} JPEG).`); }
+        catch (e) { return warn(`The video plays (${Util.clock(info.duration)}), but frame capture failed: ${explainError(e)}. Thumbnails can still be imported as images.`); }
       } },
     { id: 'tClipboard', label: 'Copy to clipboard', desc: 'Copies a short test phrase.', run: async () => {
         const res = await Util.copyText('Beyond the Title clipboard test ' + new Date().toLocaleTimeString());
@@ -2550,6 +2885,13 @@ function modal({ title, body, buttons = [{ label: 'OK', value: true, kind: 'prim
     if (primary) primary.focus();
   });
 }
+/** Non-dismissable progress dialog for long operations. Returns a close function. */
+function busy(message) {
+  const dlg = h('dialog', { class: 'modal', 'aria-busy': 'true', 'data-testid': 'busy' }, h('div', { class: 'modal-head' }, h('div', { class: 'modal-ico' }, icon('clock')), h('h2', null, 'Working…')), h('div', { class: 'modal-body' }, h('p', null, message), h('div', { class: 'progress indeterminate' }, h('span'))));
+  dlg.addEventListener('cancel', (e) => e.preventDefault());
+  document.body.append(dlg); dlg.showModal();
+  return () => { dlg.close(); dlg.remove(); };
+}
 function confirmModal(title, body, { confirm = 'Continue', cancel = 'Cancel', danger = false, tone, iconName = 'alert' } = {}) {
   return modal({ title, body, iconName, tone: tone || (danger ? 'danger' : 'warn'), buttons: [{ label: cancel, value: false, kind: 'secondary' }, { label: confirm, value: true, kind: danger ? 'danger-solid' : 'primary', testid: 'modal-confirm' }] }).then((v) => v === true);
 }
@@ -2576,11 +2918,19 @@ const Assets = (() => {
       if (S.fileIndex) file = S.fileIndex.get(path) || null;
       else if (S.dirHandle) file = await ProjectIO.readFile(S.dirHandle, path);
     } catch (e) { file = null; }
-    const u = file && /^image\//.test(file.type || 'image/') ? URL.createObjectURL(file) : null;
+    const u = file ? URL.createObjectURL(file) : null;
     cache.set(path, u);
+    if (file) sizes.set(path, file.size);
     return u;
   }
-  return { url, peek: (p) => cache.get(p) || null, clear: () => { for (const u of cache.values()) if (u) URL.revokeObjectURL(u); cache.clear(); } };
+  const sizes = new Map();
+  /** A saved project file (video, captions) as a File, for probing or preview. */
+  async function file(path) {
+    if (!path || !isSafeRelPath(path)) return null;
+    try { if (S.fileIndex) return S.fileIndex.get(path) || null; if (S.dirHandle) return await ProjectIO.readFile(S.dirHandle, path); } catch (e) { /* not readable */ }
+    return null;
+  }
+  return { url, file, peek: (p) => cache.get(p) || null, forget: (p) => { const u = cache.get(p); if (u) URL.revokeObjectURL(u); cache.delete(p); }, clear: () => { for (const u of cache.values()) if (u) URL.revokeObjectURL(u); cache.clear(); } };
 })();
 
 /* ---------- story cards (same design as the employee website) ---------- */
@@ -2592,9 +2942,10 @@ function storyCard(s, { link = false, preview = false, admin = false } = {}) {
   const team = S.teamName(s.teamId);
   const meta = [s.name && s.name.trim(), team || (s.role && s.role.trim())].filter(Boolean).join(' · ');
   const media = h('div', { class: 's-media' });
-  const thumb = s.thumbnail ? Assets.peek(s.thumbnail) : null;
+  const pendingThumb = Media.pendingUrl(S, s.id, 'thumbnail');
+  const thumb = pendingThumb || (s.thumbnail ? Assets.peek(s.thumbnail) : null);
   if (thumb) media.append(h('img', { src: thumb, alt: '' }));
-  else media.append(h('div', { class: 's-avatar', 'aria-hidden': 'true' }, Util.initials(s.name)), h('span', { class: 's-soon' }, s.video ? 'Video' : 'Video coming soon'));
+  else media.append(h('div', { class: 's-avatar', 'aria-hidden': 'true' }, Util.initials(s.name)), s.video ? null : h('span', { class: 's-soon' }, 'Video coming soon'));
   media.append(h('span', { class: 's-play', 'aria-hidden': 'true' }, icon('play')));
   if (s.duration) media.append(h('span', { class: 's-dur' }, Util.clock(s.duration)));
   if (s.featured) media.append(h('span', { class: 's-feat' }, icon('star'), 'Featured'));
@@ -2613,7 +2964,7 @@ function storyCard(s, { link = false, preview = false, admin = false } = {}) {
       S.dirtyIds.has(s.id) && S.hasUnsaved() ? chip('Unsaved', 'chip-outline chip-sm') : null,
       h('span', { class: 'grow' }), h('span', { class: 'tiny subtle' }, s.id)));
   }
-  if (s.thumbnail && !thumb) Assets.url(s.thumbnail).then((u) => { if (u && el.isConnected) { const m = el.querySelector('.s-media'); m.querySelector('.s-avatar')?.remove(); m.querySelector('.s-soon')?.remove(); m.prepend(h('img', { src: u, alt: '' })); } });
+  if (s.thumbnail && !thumb && S.assetExists(s.thumbnail)) Assets.url(s.thumbnail).then((u) => { if (u && el.isConnected) { const m = el.querySelector('.s-media'); m.querySelector('.s-avatar')?.remove(); m.querySelector('.s-soon')?.remove(); m.prepend(h('img', { src: u, alt: '' })); } });
   return el;
 }
 function featuredCard(s) {
@@ -2638,11 +2989,13 @@ const NAV = [
   { route: 'dashboard', label: 'Dashboard', iconName: 'home' },
   { route: 'import', label: 'Import', iconName: 'upload' },
   { route: 'stories', label: 'Stories', iconName: 'layers', count: () => S.stories.length },
+  { route: 'media', label: 'Media', iconName: 'video', count: () => S.unmatched.length || null },
+  { route: 'people', label: 'People & Teams', iconName: 'users' },
   { route: 'export', label: 'Save & Export', iconName: 'save' },
   { sep: true },
   { route: 'diagnostics', label: 'Diagnostics', iconName: 'activity' }
 ];
-const UIState = { route: 'dashboard', storyFilter: 'all', storySearch: '' };
+const UIState = { route: 'dashboard', storyFilter: 'all', storySearch: '', lastFolder: null };
 
 function modeInfo() {
   switch (S.mode) {
@@ -2656,7 +3009,7 @@ function renderNav() {
   const nav = $('#nav');
   nav.replaceChildren(h('div', { class: 'nav-label' }, 'Builder'), ...NAV.map((n) => n.sep ? h('div', { class: 'nav-sep', role: 'separator' }) :
     h('a', { href: '#/' + n.route, 'aria-current': (UIState.route === n.route || (n.route === 'stories' && UIState.route === 'story')) ? 'page' : null, 'data-testid': 'nav-' + n.route },
-      icon(n.iconName), h('span', null, n.label), n.count ? h('span', { class: 'count' }, String(n.count())) : null)));
+      icon(n.iconName), h('span', null, n.label), n.count && n.count() !== null ? h('span', { class: 'count' }, String(n.count())) : null)));
 }
 function renderSidebarFoot() {
   const m = modeInfo(), unsaved = S.unsavedCount();
@@ -2668,9 +3021,10 @@ function renderSidebarFoot() {
     h('div', { class: 'version' }, h('span', null, 'Builder v' + VERSION), h('span', null, 'Offline · no network')));
 }
 function renderTopbar() {
-  const titles = { dashboard: 'Dashboard', import: 'Import', stories: 'Stories', story: 'Story editor', export: 'Save & Export', diagnostics: 'Diagnostics', selftest: 'Self-tests' };
+  const titles = { dashboard: 'Dashboard', import: 'Import', stories: 'Stories', story: 'Story editor', media: 'Media', people: 'People & Teams', export: 'Save & Export', diagnostics: 'Diagnostics', selftest: 'Self-tests' };
   $('#topbar-title').replaceChildren(h('span', null, 'Beyond the Title'), icon('chevronRight'), h('span', { style: 'color:var(--ink)' }, titles[UIState.route] || ''));
   const actions = [];
+  if (UIState.lastFolder && (S.mode === 'none' || S.mode === 'standalone')) actions.push(btn(`Reopen “${UIState.lastFolder.name}”`, { kind: 'soft', iconName: 'refresh', onclick: reopenLastFolder, testid: 'reopen-folder' }));
   actions.push(btn(S.mode === 'none' || S.mode === 'standalone' ? 'Open Project Folder' : 'Change Folder', { kind: 'secondary', iconName: 'folderOpen', onclick: openProjectFolder, testid: 'open-folder' }));
   if (S.mode === 'direct' && S.canWrite) actions.push(btn('Save to Project', { kind: 'primary', iconName: 'save', onclick: saveToProject, disabled: !S.hasUnsaved() && S.savedSeq === S.changeSeq && S.lastSavedAt !== null && !S.dirtyIds.size, testid: 'save-project' }));
   else actions.push(btn('Export', { kind: 'primary', iconName: 'download', onclick: () => go('#/export'), testid: 'go-export' }));
@@ -2682,7 +3036,7 @@ function scheduleChrome() {
   requestAnimationFrame(() => {
     chromeQueued = false;
     renderNav(); renderSidebarFoot(); renderTopbar();
-    if (['dashboard', 'stories', 'import', 'export'].includes(UIState.route) && !document.querySelector('dialog[open]')) renderRoute(true);
+    if (['dashboard', 'stories', 'import', 'export', 'media'].includes(UIState.route) && !document.querySelector('dialog[open]') && !(document.activeElement && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName) && $('#view').contains(document.activeElement))) renderRoute(true);
   });
 }
 function go(hash) { if (location.hash === hash) renderRoute(); else location.hash = hash; }
@@ -2694,6 +3048,8 @@ const ROUTES = [
   [/^#\/stories$/, () => ['stories', viewStories()]],
   [/^#\/story\/([a-z0-9-]+)$/, (m) => ['story', viewEditor(m[1])]],
   [/^#\/export$/, () => ['export', viewExport()]],
+  [/^#\/media$/, () => ['media', viewMedia()]],
+  [/^#\/people$/, () => ['people', viewPeople()]],
   [/^#\/diagnostics$/, () => ['diagnostics', viewDiagnostics()]],
   [/^#selftest$/, () => ['selftest', viewSelfTest(true)]],
   [/^#demo(?:-([a-z]+))?$/, (m) => { runDemo(m[1]); return null; }]
@@ -2712,7 +3068,7 @@ function renderRoute(soft) {
     const scrollY = window.scrollY;
     view.replaceChildren(...[].concat(nodes));
     renderNav(); renderTopbar(); renderSidebarFoot();
-    document.title = ({ dashboard: 'Dashboard', import: 'Import', stories: 'Stories', story: 'Story', export: 'Save & Export', diagnostics: 'Diagnostics', selftest: 'Self-tests' }[route] || 'Builder') + ' · Beyond the Title Builder';
+    document.title = ({ dashboard: 'Dashboard', import: 'Import', stories: 'Stories', story: 'Story', media: 'Media', people: 'People & Teams', export: 'Save & Export', diagnostics: 'Diagnostics', selftest: 'Self-tests' }[route] || 'Builder') + ' · Beyond the Title Builder';
     if (soft) window.scrollTo(0, scrollY);
     else { window.scrollTo(0, 0); if (changed) view.focus({ preventScroll: true }); }
     return;
@@ -2755,6 +3111,7 @@ async function openProjectFolder() {
       await ProjectIO.initializeFolder(root);
     }
     const res = await ProjectIO.loadFromHandle(S, root, canWrite);
+    if (res.ok && await FolderMemory.save(root)) UIState.lastFolder = root;
     afterLoad(res, canWrite ? 'Project folder opened. Saving writes directly to it.' : 'Project folder opened read-only. Use Export to save changes.');
   } catch (e) {
     alertModal('Couldn\'t open the folder', [h('p', null, explainError(e)), h('p', { class: 'small muted' }, `${e.name || 'Error'}: ${e.message || ''}`)], { iconName: 'xCircle', tone: 'danger' });
@@ -2810,13 +3167,18 @@ async function saveToProject() {
   const ok = await confirmModal('Save to project folder?', [
     h('p', null, 'These files will be written to ', h('b', null, S.folderName), ':'),
     h('ul', { class: 'change-list', 'data-testid': 'save-plan' }, writes.map((p) => h('li', null, icon(p.action === 'create' ? 'plus' : 'refresh'),
-      h('div', null, h('div', { class: 'path' }, p.rel), h('div', { class: 'tiny muted' }, p.action === 'create' ? 'New file' : `Update. The current version is backed up to ${p.backup}`))))),
+      h('div', null, h('div', { class: 'path' }, p.rel), h('div', { class: 'tiny muted' },
+        p.action === 'create' ? 'New file' : p.backup ? `Update. The current version is backed up to ${p.backup}` : 'Replaces the existing file',
+        p.size ? ' · ' + Util.formatBytes(p.size) : ''))))),
     skips.length ? banner('warn', [h('b', null, 'Skipped: '), skips.map((s) => s.rel + ' (' + s.reason + ')').join(' ')]) : null,
     conflicts.length ? banner('warn', [h('b', null, 'Changed outside the builder. '), `${conflicts.map((c) => c.rel).join(', ')} changed on disk since you opened the folder. Saving replaces those changes; the current version is kept in backups/.`]) : null
   ], { confirm: conflicts.length ? 'Save anyway' : 'Save', iconName: 'save', tone: conflicts.length ? 'warn' : ' ' });
   if (!ok) return;
   let result;
+  const total = writes.reduce((n, w) => n + (w.size || 0), 0);
+  const done = busy(`Saving ${Util.plural(writes.length, 'file')}${total > 5e6 ? ' (' + Util.formatBytes(total) + ')' : ''} to “${S.folderName}”… Keep this tab open.`);
   try { result = await ProjectIO.executeSave(S, plan); } catch (e) { result = { done: [], failed: [{ w: { rel: '(save)' }, error: e }], skipped: [] }; }
+  finally { done(); }
   if (!result.failed.length) {
     toast(`Saved and verified: ${Util.plural(result.done.filter((d) => d.kind !== 'backup').length, 'file')} written${result.done.some((d) => d.kind === 'backup') ? ', backup kept' : ''}.`, 'success');
     scheduleChrome(); if (UIState.route === 'story') refreshEditor();
@@ -2838,17 +3200,31 @@ function exportJson(kind) {
   toast(`${kind}.json downloaded. Replace data/${kind}.json in your project folder with it.`, 'success', 7000);
 }
 async function exportPackage() {
-  const { files, transcripts } = ProjectIO.packageFiles(S);
-  const bytes = Zip.createBytes(files);
+  let includeVideos = true;
+  const probe = ProjectIO.packageFiles(S, { includeVideos: true });
+  const videoBytes = [...S.media.values()].reduce((n, m) => n + (m.video ? m.video.size : 0), 0);
+  if (videoBytes) {
+    const choice = await modal({ title: 'Include videos in the package?', iconName: 'video', body: [
+      h('p', null, `The attached videos add ${Util.formatBytes(videoBytes)} to the package. Including them is simplest: everything lands in the right place when you copy the folders.`),
+      h('p', { class: 'small muted' }, 'Leave them out if the file would be too big to handle. HOW-TO-APPLY.txt then lists where to copy each video and what to rename it.')],
+      buttons: [{ label: 'Cancel', value: null }, { label: 'Without videos', value: 'no' }, { label: 'Include videos', value: 'yes', kind: 'primary', testid: 'zip-with-videos' }] });
+    if (!choice) return;
+    includeVideos = choice === 'yes';
+  }
+  const pkg = includeVideos ? probe : ProjectIO.packageFiles(S, { includeVideos: false });
   const name = `beyond-the-title-update-${Util.fileStamp()}.zip`;
-  Util.download(name, new Blob([bytes], { type: 'application/zip' }));
+  let blob;
+  try { toast('Building the package…', 'info', 2500); blob = await Zip.createBlob(pkg.files); }
+  catch (e) { alertModal('The package couldn\'t be created', h('p', null, explainError(e)), { iconName: 'xCircle', tone: 'danger' }); return; }
+  Util.download(name, blob);
   markExported();
   await alertModal('Update package downloaded', [
-    h('p', null, 'Look in your Downloads folder for ', h('b', null, name), '. To apply it:'),
+    h('p', null, 'Look in your Downloads folder for ', h('b', null, name), ` (${Util.formatBytes(blob.size)}). To apply it:`),
     h('ol', { class: 'howto' },
       h('li', null, 'Double-click the .zip to unzip it.'),
       h('li', null, 'Copy the three files in its ', h('b', null, 'data'), ' folder into your project\'s ', h('b', null, 'data'), ' folder. Choose ', h('b', null, 'Replace'), '.'),
-      transcripts.length ? h('li', null, 'Copy each folder inside its ', h('b', null, 'stories'), ` folder (${transcripts.length} new) into your project's `, h('b', null, 'stories'), ' folder. ', h('b', null, 'Don\'t replace the whole stories folder'), '. That would remove videos already there.') : null),
+      pkg.folders.length ? h('li', null, `For each folder in its `, h('b', null, 'stories'), ` folder (${pkg.folders.length}): if your project doesn't have it yet, copy the whole folder. If it does, copy the `, h('b', null, 'files'), ' across. ', h('b', null, 'Don\'t replace the folder'), ', because that would delete files already in it.') : null,
+      pkg.skippedVideos.length ? h('li', null, 'Copy the videos by hand. HOW-TO-APPLY.txt lists each file and its new name.') : null),
     h('p', { class: 'small muted' }, 'The package also includes HOW-TO-APPLY.txt with these steps.')
   ], { iconName: 'package', tone: 'success' });
 }
@@ -2980,9 +3356,9 @@ function viewDashboard() {
     tile('Drafts', c.draft, { iconName: 'edit' }),
     tile('Ready for review', c.review, { iconName: 'eye' }),
     tile('Approved', c.approved, { iconName: 'checkCircle' }),
-    tile('Published', c.published, { iconName: 'star', note: 'needs video (Milestone 2)' }),
+    tile('Published', c.published, { iconName: 'star', note: 'needs video + thumbnail' }),
     tile('Validation issues', c.errors + c.warnings, { iconName: 'alert', note: `${Util.plural(c.errors, 'error')} · ${Util.plural(c.warnings, 'warning')}`, cls: c.errors ? 'bad' : c.warnings ? 'warn' : '' }),
-    tile('Missing video', c.missingVideo, { iconName: 'video', note: 'video support is next' })));
+    tile('Missing video', c.missingVideo, { iconName: 'video', note: S.unmatched.length ? Util.plural(S.unmatched.length, 'file') + ' to assign' : 'attach on the Media page' })));
   const attention = S.stories.map((s) => ({ s, v: S.validate(s) })).filter((x) => x.v.errors.length || x.v.warnings.length).slice(0, 6);
   const recent = S.stories.slice().sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))).slice(0, 5);
   const m = modeInfo();
@@ -3010,10 +3386,11 @@ function viewDashboard() {
 function viewImport() {
   const dz = h('div', { class: 'dropzone', 'data-testid': 'dropzone' },
     h('div', { class: 'drop-icon' }, icon('upload')),
-    h('h2', null, 'Drop .txt transcripts here'),
-    h('p', { class: 'muted' }, 'Socialive transcript exports, one or many at once. Video files aren\'t needed yet.'),
+    h('h2', null, 'Drop Socialive files or a whole folder here'),
+    h('p', { class: 'muted' }, '.txt transcripts become draft stories. Matching .mp4 videos and .vtt captions are attached by file name. Videos are optional: transcripts work on their own.'),
     h('div', { class: 'row', style: 'justify-content:center;margin-top:6px' },
-      btn('Choose files', { kind: 'primary', iconName: 'file', testid: 'choose-files', onclick: async () => { const f = await Util.pickFiles({ accept: '.txt,text/plain', multiple: true }); if (f && f.length) importTranscriptFiles(f); } }),
+      btn('Choose files', { kind: 'primary', iconName: 'file', testid: 'choose-files', onclick: async () => { const f = await Util.pickFiles({ accept: '.txt,text/plain,.mp4,.m4v,.mov,.vtt,.jpg,.jpeg,.png,.webp', multiple: true }); if (f && f.length) importAny(f); } }),
+      btn('Import a folder', { iconName: 'folderOpen', testid: 'import-folder', onclick: async () => { const f = await Util.pickFiles({ directory: true }); if (f && f.length) importAny(f); } }),
       btn('Try with sample data', { kind: 'ghost', iconName: 'beaker', onclick: () => loadSamples() })),
     h('p', { class: 'small subtle row', style: 'justify-content:center;margin-top:8px' }, icon('lock'), 'Files stay on this computer. Nothing is uploaded or stored in the browser.'));
   dz.addEventListener('dragover', () => dz.classList.add('over'));
@@ -3157,7 +3534,7 @@ function viewEditor(id) {
   const left = h('div', { class: 'editor-left', 'data-testid': 'editor-left' });
   ED.els.left = left;
   renderEditorLeft();
-  const right = h('div', { class: 'editor-right', 'data-testid': 'editor-right' }, previewSection(), formSection(), validationSection());
+  const right = h('div', { class: 'editor-right', 'data-testid': 'editor-right' }, previewSection(), mediaSection(), formSection(), validationSection());
   setTimeout(() => refreshEditor(), 0);
   updateHeader();
   return [head, h('div', { class: 'editor' }, left, right)];
@@ -3521,17 +3898,24 @@ function formSection() {
     h('option', { value: 'published', selected: S.status(s) === 'published', disabled: S.publishBlockers(s).length > 0 }, 'Published' + (S.publishBlockers(s).length ? ' (needs video)' : '')));
   status.addEventListener('change', () => {
     const target = status.value, cur = story();
+    const wasPublished = S.status(cur) === 'published';
     if (STATUSES.indexOf(target) >= 1) {
       const v = S.validate(Object.assign({}, cur, { status: target, published: target === 'published' }));
       if (v.errors.length) { status.value = S.status(cur); toast(`Fix ${Util.plural(v.errors.length, 'issue')} before marking this “${STATUS_LABEL[target]}”. They're listed under Checks.`, 'error'); ED.els.validation && ED.els.validation.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
     }
     edit('status', target);
+    void wasPublished;
+    renderRoute(true); // the Published switch and status options depend on the new status
   });
   const featured = h('input', { type: 'checkbox', role: 'switch', checked: !!s.featured, 'aria-label': 'Featured', 'data-testid': 'field-featured' });
   featured.addEventListener('change', () => { edit('featured', featured.checked); if (featured.checked && ED.previewMode !== 'featured') { ED.previewMode = 'featured'; const segc = ED.els.previewStage.closest('.card').querySelector('.seg-ctl'); [...segc.children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === 1))); updatePreview(); } });
   const blockers = S.publishBlockers(s);
-  const published = h('input', { type: 'checkbox', role: 'switch', checked: s.published === true, disabled: blockers.length > 0 || S.status(s) !== 'approved' && s.published !== true, 'aria-label': 'Published' });
-  published.addEventListener('change', () => edit('status', published.checked ? 'published' : 'approved'));
+  const published = h('input', { type: 'checkbox', role: 'switch', checked: s.published === true, disabled: (blockers.length > 0 || S.status(s) !== 'approved') && s.published !== true, 'aria-label': 'Published', 'data-testid': 'field-published' });
+  published.addEventListener('change', () => {
+    const cur = story(), target = published.checked ? 'published' : 'approved';
+    if (target === 'published') { const v = S.validate(Object.assign({}, cur, { status: 'published', published: true })); if (v.errors.length) { published.checked = false; toast(`Fix ${Util.plural(v.errors.length, 'issue')} before publishing. They're listed under Checks.`, 'error'); return; } }
+    edit('status', target); renderRoute(true);
+  });
   const assetRow = (label, iconName, value, note) => h('div', { class: 'row', style: 'flex-wrap:nowrap;align-items:flex-start' }, h('div', { class: 'file-ico' }, icon(iconName)), h('div', { class: 'grow', style: 'min-width:0' }, h('div', { class: 'small', style: 'font-weight:640' }, label), h('div', { class: 'tiny muted', style: 'overflow-wrap:anywhere' }, value || note)));
   const tsInfo = ts ? (ts.persisted ? 'In the project folder' : (S.mode === 'direct' ? 'Written to the project folder on save' : 'Included in the export package')) : 'Not loaded';
   const sec = (title, ...kids) => h('div', { class: 'form-section' }, h('div', { class: 'form-section-title' }, title), ...kids);
@@ -3555,12 +3939,11 @@ function formSection() {
     sec('Publishing',
       field({ label: 'Status', id: 'f-status', control: status, hint: 'Ready for review and Approved require the starred fields.' }),
       h('div', { class: 'switch-row' }, h('div', { class: 'switch-text' }, h('span', { class: 'switch-title' }, 'Featured story'), h('span', { class: 'small muted' }, 'Shown in the large featured spot on the homepage.')), h('span', { class: 'switch' }, featured)),
-      h('div', { class: 'switch-row' }, h('div', { class: 'switch-text' }, h('span', { class: 'switch-title' }, 'Published'), h('span', { class: 'small muted' }, blockers.length ? 'Not yet: ' + blockers.join(' ') : S.status(s) !== 'approved' && s.published !== true ? 'Approve the story first.' : 'Visible on the employee website once released.')), h('span', { class: 'switch' }, published))),
+      h('div', { class: 'switch-row' }, h('div', { class: 'switch-text' }, h('span', { class: 'switch-title' }, 'Published'), h('span', { class: 'small muted' }, s.published === true ? 'Included in the next website release.' : blockers.length ? 'Not yet: ' + blockers.join(' ') : S.status(s) !== 'approved' ? 'Approve the story first.' : 'Ready. Turn on to include it in the next website release.')), h('span', { class: 'switch' }, published))),
     sec('Assets',
       assetRow('Transcript', 'file', s.transcript, ''), h('div', { class: 'tiny muted', style: 'margin:-6px 0 0 46px' }, tsInfo),
-      assetRow('Video', 'video', s.video, 'Not set. Video support arrives in Milestone 2.'),
-      assetRow('Thumbnail', 'image', s.thumbnail, 'Not set. Captured from the video in Milestone 2.'),
-      assetRow('Captions', 'captions', s.captions, 'Not set. VTT support arrives in Milestone 2.'),
+      h('div', { class: 'row' }, ...['video', 'thumbnail', 'captions'].map((k) => h('span', { class: 'row', style: 'gap:4px' }, h('span', { class: 'small', style: 'font-weight:640;text-transform:capitalize' }, k), assetChip(S.assetState(s, k))))),
+      h('div', { class: 'tiny muted' }, 'Manage these in “Video & media” above.'),
       s.source && s.source.transcriptSha256 ? h('div', { class: 'tiny subtle', style: 'overflow-wrap:anywhere' }, 'Source: ', s.source.transcriptFile || '', ' · SHA-256 ', h('span', { class: 'mono' }, s.source.transcriptSha256.slice(0, 16) + '…')) : null)) });
   updateOrgHints();
   return form;
@@ -3630,6 +4013,322 @@ function updateValidation() {
   if (!v.errors.length && !v.warnings.length) items.unshift(item('ok', 'checkCircle', v.todos.length ? 'No problems. A few fields still need filling before review.' : 'Ready. All checks pass for this status.'));
   box.replaceChildren(...items);
 }
+
+/* ==========================================================================
+   Editor: Video & media card
+   ========================================================================== */
+function mediaSection() {
+  const body = h('div', { class: 'stack', 'data-testid': 'media-card' });
+  ED.els.media = body;
+  renderMediaBody();
+  return card({ title: 'Video & media', iconName: 'video', body });
+}
+function assetChip(st) {
+  return ({
+    pending: chip(S.mode === 'direct' && S.canWrite ? 'Written on save' : 'Included in export', 'chip-info chip-sm'),
+    saved: chip('In project folder', 'chip-success chip-sm', 'check'),
+    missing: chip('File missing', 'chip-danger chip-sm', 'xCircle'),
+    unknown: chip('Not checked: open the folder', 'chip-warning chip-sm'),
+    none: chip('Not set', 'chip-neutral chip-sm')
+  })[st];
+}
+function filesInStoryFolder(s, re) {
+  if (!S.assetIndex) return [];
+  const pre = `stories/${s.id}/`;
+  return [...S.assetIndex].filter((p) => p.startsWith(pre) && !p.slice(pre.length).includes('/') && re.test(p));
+}
+function renderMediaBody() {
+  const s = story(), body = ED.els.media; if (!s || !body) return;
+  const vState = S.assetState(s, 'video'), tState = S.assetState(s, 'thumbnail'), cState = S.assetState(s, 'captions');
+  const m = S.media.get(s.id) || {};
+  const parts = [];
+  ED.els.video = null;
+  if (vState === 'none') {
+    parts.push(h('div', { class: 'media-empty' }, h('div', { class: 'drop-icon' }, icon('video')),
+      h('div', { class: 'grow' }, h('b', null, 'No video yet'), h('div', { class: 'small muted' }, `Attach the Socialive MP4. It's saved as stories/${s.id}/video.mp4, its length is read automatically, and a thumbnail is captured for you.`)),
+      btn('Attach video…', { kind: 'primary', size: 'sm', iconName: 'upload', testid: 'attach-video', onclick: () => pickAndAttach('video') })));
+    const found = filesInStoryFolder(s, Media.VIDEO_RE)[0];
+    if (found) parts.push(banner('info', ['Found ', h('code', null, found), ' in this story\'s folder. ', h('button', { type: 'button', class: 'link-btn', onclick: () => linkExisting(s, 'video', found) }, 'Use it')]));
+  } else {
+    const v = h('video', { controls: true, preload: 'metadata', playsinline: true, class: 'media-video', 'data-testid': 'video-player' });
+    const src = Media.pendingUrl(S, s.id, 'video');
+    if (src) v.src = src; else if (vState === 'saved') Assets.url(s.video).then((u) => { if (u) v.src = u; });
+    const cap = Media.pendingUrl(S, s.id, 'captions');
+    if (cap) v.append(h('track', { kind: 'captions', src: cap, srclang: 'en', label: 'Captions', default: true }));
+    else if (cState === 'saved') Assets.url(s.captions).then((u) => { if (u) v.append(h('track', { kind: 'captions', src: u, srclang: 'en', label: 'Captions', default: true })); });
+    ED.els.video = v;
+    const info = m.video;
+    parts.push(v, h('div', { class: 'row' }, chip(s.video, 'chip-outline chip-sm mono'), assetChip(vState), s.duration ? chip(Util.clock(s.duration), 'chip-neutral chip-sm', 'clock') : null,
+      info ? chip(`${info.width}×${info.height} · ${Util.formatBytes(info.size)}`, 'chip-neutral chip-sm') : null));
+    if (vState === 'missing') parts.push(banner('danger', `The video file ${s.video} isn't in the project folder. Attach it again, or copy it there and reopen the folder.`));
+    parts.push(h('div', { class: 'row' },
+      btn('Use this frame as thumbnail', { size: 'sm', kind: 'soft', iconName: 'image', testid: 'capture-frame', onclick: captureCurrentFrame, disabled: vState === 'missing' || vState === 'unknown' }),
+      typeof s.quoteStart === 'number' ? btn('Jump to quote · ' + Util.clock(s.quoteStart), { size: 'sm', iconName: 'quote', onclick: () => { v.currentTime = s.quoteStart; v.play().catch(() => {}); } }) : null,
+      h('span', { class: 'grow' }),
+      btn('Replace…', { size: 'sm', kind: 'ghost', onclick: () => pickAndAttach('video') }),
+      iconBtn('trash', 'Remove video', { onclick: () => removeMedia('video') })));
+  }
+  const tUrl = Media.pendingUrl(S, s.id, 'thumbnail') || (tState === 'saved' ? Assets.peek(s.thumbnail) : null);
+  const thumbBox = h('div', { class: 'thumb-box', 'data-testid': 'thumb-preview' }, tUrl ? h('img', { src: tUrl, alt: 'Thumbnail' }) : icon('image'));
+  if (!tUrl && tState === 'saved') Assets.url(s.thumbnail).then((u) => { if (u) thumbBox.replaceChildren(h('img', { src: u, alt: 'Thumbnail' })); });
+  const tm = m.thumbnail;
+  parts.push(h('div', { class: 'media-row' }, thumbBox,
+    h('div', { class: 'grow', style: 'min-width:0' }, h('div', { class: 'row' }, h('b', null, 'Thumbnail'), assetChip(tState)),
+      h('div', { class: 'small muted' }, tState === 'none' ? 'Shown on the story card. Capture a frame from the video, or import an image.'
+        : tm && tm.source === 'auto' ? `Captured automatically at ${Util.clock(tm.time)}. Pause on a better frame and click “Use this frame as thumbnail” to replace it.`
+          : tm && tm.source === 'frame' ? `Captured from the video at ${Util.clock(tm.time)}.` : tm ? 'Imported image.' : s.thumbnail)),
+    h('div', { class: 'row', style: 'flex-wrap:nowrap' }, btn('Import image…', { size: 'sm', kind: 'ghost', onclick: () => pickAndAttach('thumbnail') }), tState !== 'none' ? iconBtn('trash', 'Remove thumbnail', { onclick: () => removeMedia('thumbnail') }) : null)));
+  const cm = m.captions, ts = tstate(), canGen = !!(ts && Media.vttFromTranscript(ts));
+  parts.push(h('div', { class: 'media-row' }, h('div', { class: 'thumb-box sm' }, icon('captions')),
+    h('div', { class: 'grow', style: 'min-width:0' }, h('div', { class: 'row' }, h('b', null, 'Captions'), assetChip(cState)),
+      h('div', { class: 'small muted' }, cState === 'none' ? 'A WebVTT (.vtt) file. Strongly recommended for accessibility.' : cm ? `${Util.plural(cm.check.cues, 'cue')} · ends at ${Util.clock(cm.check.lastEnd)}${cm.generated ? ' · created from the transcript' : ''}` : s.captions),
+      cm && cm.check.warnings.length ? h('div', { class: 'small', style: 'color:var(--warning)' }, cm.check.warnings.join(' ')) : null),
+    h('div', { class: 'row', style: 'flex-wrap:nowrap' },
+      btn(cState === 'none' ? 'Attach .vtt…' : 'Replace…', { size: 'sm', kind: 'ghost', testid: 'attach-captions', onclick: () => pickAndAttach('captions') }),
+      cState === 'none' && canGen ? btn('From transcript', { size: 'sm', kind: 'ghost', title: 'Builds captions from the transcript\'s caption timings', onclick: genCaptions }) : null,
+      cState !== 'none' ? iconBtn('trash', 'Remove captions', { onclick: () => removeMedia('captions') }) : null)));
+  const blockers = S.publishBlockers(s);
+  parts.push(blockers.length ? h('div', { class: 'field-hint' }, icon('lock'), 'Before publishing: ' + blockers.join(' ')) : h('div', { class: 'field-hint', style: 'color:var(--success)' }, icon('checkCircle'), 'Media is ready. This story can be published once it\'s approved.'));
+  body.replaceChildren(...parts);
+}
+function refreshAfterMedia() { updatePreview(); updateValidation(); scheduleChrome(); renderRoute(true); }
+async function pickAndAttach(kind) {
+  const s = story(); if (!s) return;
+  const accept = { video: '.mp4,.m4v,.mov,video/mp4,video/quicktime', captions: '.vtt,text/vtt', thumbnail: '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp' }[kind];
+  const files = await Util.pickFiles({ accept, multiple: false });
+  if (!files || !files[0]) return;
+  if (S.assetState(s, kind) === 'saved' && !(await confirmModal(`Replace the saved ${kind}?`, h('p', null, `${s[kind]} will be replaced in the project folder the next time you save.`), { confirm: 'Replace' }))) return;
+  const close = kind === 'video' ? busy('Reading the video and capturing a thumbnail…') : () => {};
+  let r;
+  try { r = await Media.attach(S, s, kind, files[0]); } finally { close(); }
+  if (!r.ok) { alertModal('That file couldn\'t be used', h('p', null, r.error), { iconName: 'xCircle', tone: 'danger' }); return; }
+  toast(`${kind === 'video' ? 'Video' : kind === 'captions' ? 'Captions' : 'Thumbnail'} attached. ${S.mode === 'direct' && S.canWrite ? 'It is written to the project folder when you save.' : 'It is included when you export.'}`, 'success');
+  for (const w of r.warnings) toast(w, 'warn', 9000);
+  refreshAfterMedia();
+}
+async function captureCurrentFrame() {
+  const v = ED.els.video, s = story(); if (!v || !s) return;
+  if (v.readyState < 2) { toast('Let the video load, then pause on the frame you want.', 'warn'); return; }
+  try {
+    const blob = await Media.frameToJpeg(v);
+    await Media.setThumbnail(S, s, blob, 'frame', v.currentTime);
+    toast(`Thumbnail captured at ${Util.clock(v.currentTime)}.`, 'success');
+    renderMediaBody(); updatePreview(); updateValidation(); scheduleChrome();
+  } catch (e) {
+    alertModal('Couldn\'t capture the frame', [h('p', null, explainError(e)), h('p', { class: 'small muted' }, 'You can import a thumbnail image instead.')], { iconName: 'alert', tone: 'warn' });
+  }
+}
+function genCaptions() {
+  const s = story(), ts = tstate(); const text = Media.vttFromTranscript(ts); if (!s || !text) return;
+  Media.setCaptions(S, s, text, 'transcript');
+  S.media.get(s.id).captions.generated = true;
+  toast('Captions created from the transcript\'s timings. Spot-check them against the video.', 'success');
+  refreshAfterMedia();
+}
+async function removeMedia(kind) {
+  const s = story(); if (!s) return;
+  const saved = S.assetState(s, kind) === 'saved';
+  if (!(await confirmModal(`Remove the ${kind}?`, h('p', null, saved ? `The story will no longer use ${s[kind]}. The file itself stays in the project folder.` : 'The attached file will be dropped from this story.'), { confirm: 'Remove', danger: true, iconName: 'trash' }))) return;
+  Media.remove(S, s, kind); Assets.forget(s[kind]);
+  refreshAfterMedia();
+}
+async function linkExisting(s, kind, path) {
+  S.set(s, kind, path);
+  if (kind === 'video') { const f = await Assets.file(path); if (f) { const info = await Media.probe(f); if (info.ok) S.set(s, 'duration', info.duration); } }
+  toast(`Linked ${path}.`, 'success');
+  refreshAfterMedia();
+}
+
+/* ==========================================================================
+   Bulk media import & matching
+   ========================================================================== */
+async function filesFromDrop(dt) {
+  const entries = [...(dt.items || [])].map((i) => (i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)).filter(Boolean);
+  if (!entries.some((e) => e.isDirectory)) return [...dt.files];
+  const out = [];
+  const walk = async (entry, depth) => {
+    if (entry.name.startsWith('.')) return;
+    if (entry.isFile) out.push(await new Promise((res, rej) => entry.file(res, rej)));
+    else if (entry.isDirectory && depth < 4) {
+      const reader = entry.createReader(); let batch;
+      do { batch = await new Promise((res, rej) => reader.readEntries(res, rej)); for (const e of batch) await walk(e, depth + 1); } while (batch.length);
+    }
+  };
+  for (const e of entries) await walk(e, 0);
+  return out;
+}
+/** Transcripts first (each becomes a story), then videos, captions and images are matched to stories by name. */
+async function importAny(fileList, { navigate = true } = {}) {
+  const files = Array.from(fileList || []).filter((f) => !f.name.startsWith('.'));
+  const txt = files.filter((f) => /\.txt$/i.test(f.name));
+  const media = files.filter((f) => ['video', 'captions', 'thumbnail'].includes(Media.kindOf(f.name)));
+  const ignored = files.length - txt.length - media.length;
+  if (txt.length) await importTranscriptFiles(txt, { navigate: navigate && !media.length });
+  if (media.length) await attachMediaFiles(media);
+  if (ignored) toast(`${Util.plural(ignored, 'other file')} ignored. Only .txt transcripts, .mp4/.m4v/.mov videos, .vtt captions and images are used.`, 'info');
+  if (navigate && media.length) go('#/media');
+}
+async function attachMediaFiles(files) {
+  const { matched, unmatched } = Media.match(S.stories, files);
+  const order = { video: 0, captions: 1, thumbnail: 2 };
+  matched.sort((a, b) => order[a.kind] - order[b.kind]);
+  let ok = 0; const warnings = [];
+  const close = matched.some((m) => m.kind === 'video') ? busy(`Reading ${Util.plural(matched.filter((m) => m.kind === 'video').length, 'video')} and capturing thumbnails…`) : () => {};
+  try {
+    for (const m of matched) {
+      const st = S.assetState(m.story, m.kind), pend = (S.media.get(m.story.id) || {})[m.kind];
+      const replaceable = st === 'none' || (m.kind === 'thumbnail' && pend && pend.source === 'auto');
+      if (!replaceable) { unmatched.push({ file: m.file, kind: m.kind, reason: `${m.story.id} already has a ${m.kind}. Assign it here to replace that one.`, candidates: [m.story.id] }); continue; }
+      const r = await Media.attach(S, m.story, m.kind, m.file);
+      if (r.ok) { ok++; warnings.push(...r.warnings.map((w) => `${m.story.id}: ${w}`)); }
+      else unmatched.push({ file: m.file, kind: m.kind, reason: r.error });
+    }
+  } finally { close(); }
+  const names = new Set(files.map((f) => f.name + '|' + f.size));
+  S.unmatched = unmatched.map((u) => Object.assign(u, { id: Math.random().toString(36).slice(2) })).concat(S.unmatched.filter((u) => !names.has(u.file.name + '|' + u.file.size)));
+  S.emit();
+  if (ok) toast(`Matched and attached ${Util.plural(ok, 'file')}.`, 'success');
+  if (unmatched.length) toast(`${Util.plural(unmatched.length, 'file')} couldn't be matched automatically. Assign them on the Media page.`, 'warn', 8000);
+  for (const w of warnings.slice(0, 3)) toast(w, 'warn', 9000);
+}
+async function assignUnmatched(u, storyId) {
+  const s = S.get(storyId); if (!s) return;
+  if (S.assetState(s, u.kind) === 'saved' && !(await confirmModal(`Replace the saved ${u.kind}?`, h('p', null, `${s[u.kind]} will be replaced in the project folder the next time you save.`), { confirm: 'Replace' }))) return;
+  const close = u.kind === 'video' ? busy('Reading the video…') : () => {};
+  let r; try { r = await Media.attach(S, s, u.kind, u.file); } finally { close(); }
+  if (!r.ok) { toast(r.error, 'error'); return; }
+  S.unmatched = S.unmatched.filter((x) => x !== u); S.emit();
+  toast(`${u.file.name} attached to ${storyId}.`, 'success');
+  for (const w of r.warnings) toast(w, 'warn', 9000);
+  renderRoute(true);
+}
+/** Link files already sitting in stories/<id>/ (for example copied in by hand). */
+async function scanProjectFolder() {
+  if (S.mode === 'direct' && S.dirHandle) { try { S.assetIndex = await ProjectIO.indexHandle(S.dirHandle); } catch (e) { toast('Couldn\'t re-read the folder: ' + explainError(e), 'error'); return; } }
+  if (!S.assetIndex) { toast('Open the project folder first.', 'warn'); return; }
+  let linked = 0;
+  const close = busy('Checking story folders…');
+  try {
+    for (const s of S.stories) {
+      for (const [kind, re] of [['video', Media.VIDEO_RE], ['thumbnail', Media.IMAGE_RE], ['captions', Media.CAPTION_RE]]) {
+        if (S.assetState(s, kind) !== 'none') continue;
+        const found = filesInStoryFolder(s, re); if (found.length !== 1) continue;
+        S.set(s, kind, found[0]); linked++;
+        if (kind === 'video') { const f = await Assets.file(found[0]); if (f) { const info = await Media.probe(f); if (info.ok) S.set(s, 'duration', info.duration); } }
+      }
+    }
+  } finally { close(); }
+  S.emit();
+  toast(linked ? `Linked ${Util.plural(linked, 'file')} found in story folders.` : 'No new files found in the story folders.', linked ? 'success' : 'info');
+  renderRoute(true);
+}
+
+/* ==========================================================================
+   View: Media & assets report
+   ========================================================================== */
+function viewMedia() {
+  const kinds = [['transcript', 'Transcript', 'file'], ['video', 'Video', 'video'], ['thumbnail', 'Thumbnail', 'image'], ['captions', 'Captions', 'captions']];
+  const stateOf = (s, k) => k === 'transcript' ? (S.transcripts.get(s.id) && S.transcripts.get(s.id).bytes && !(S.assetIndex && S.assetIndex.has(s.transcript)) ? 'pending' : S.assetState(s, 'transcript')) : S.assetState(s, k);
+  const ready = S.stories.filter((s) => !S.publishBlockers(s).length).length;
+  const missing = S.stories.filter((s) => kinds.some(([k]) => stateOf(s, k) === 'missing')).length;
+  const referenced = new Set(S.stories.flatMap((s) => ['transcript', 'video', 'thumbnail', 'captions'].map((k) => s[k]).filter(Boolean)));
+  const ids = new Set(S.stories.map((s) => s.id));
+  const orphans = S.assetIndex ? [...S.assetIndex].filter((p) => /^stories\/[^/]+\/[^/]+$/.test(p) && !referenced.has(p) && !p.split('/').pop().startsWith('.')) : [];
+  const rows = S.stories.map((s) => h('div', { class: 'list-row', 'data-testid': 'media-row' },
+    h('div', { class: 'file-ico' }, Util.initials(s.name)),
+    h('div', { class: 'meta' }, h('a', { class: 'title truncate', href: '#/story/' + s.id }, s.name || displayHeadline(s) || 'Untitled story'), h('span', { class: 'tiny subtle' }, s.id + (s.duration ? ' · ' + Util.clock(s.duration) : ''))),
+    h('div', { class: 'row', style: 'justify-content:flex-end' }, kinds.map(([k, label, ic]) => { const st = stateOf(s, k); return chip(label, { saved: 'chip-success', pending: 'chip-info', missing: 'chip-danger', unknown: 'chip-warning', none: 'chip-neutral' }[st] + ' chip-sm', { saved: 'check', pending: 'clock', missing: 'xCircle', unknown: 'alert', none: ic }[st]); }),
+      S.publishBlockers(s).length ? chip('Media incomplete', 'chip-outline chip-sm') : chip('Media ready', 'chip-success chip-sm', 'star'))));
+  const unmatchedRows = S.unmatched.map((u) => {
+    const sel = h('select', { class: 'select select-sm', 'aria-label': 'Assign to story', style: 'max-width:240px' }, h('option', { value: '' }, 'Assign to story…'), S.stories.map((s) => h('option', { value: s.id, selected: (u.candidates || [])[0] === s.id }, `${s.id} · ${s.name || 'Untitled'}`)));
+    return h('div', { class: 'list-row', 'data-testid': 'unmatched-row' },
+      h('div', { class: 'file-ico' }, icon(u.kind === 'video' ? 'video' : u.kind === 'captions' ? 'captions' : 'image')),
+      h('div', { class: 'meta' }, h('span', { class: 'title truncate' }, u.file.name), h('span', { class: 'small muted' }, `${Util.formatBytes(u.file.size)} · ${u.reason}`)),
+      sel, btn('Assign', { size: 'sm', kind: 'primary', onclick: () => { if (sel.value) assignUnmatched(u, sel.value); else toast('Choose a story first.', 'warn'); } }),
+      iconBtn('x', 'Dismiss', { onclick: () => { S.unmatched = S.unmatched.filter((x) => x !== u); renderRoute(true); } }));
+  });
+  return [
+    pageHead({ eyebrow: 'Media', title: 'Videos, thumbnails & captions', lede: 'Drop a Socialive export folder (or individual files) and the builder matches videos and captions to stories by file name. Anything it can\'t match is listed here for you to assign.',
+      actions: [btn('Add videos & captions…', { kind: 'primary', iconName: 'upload', testid: 'add-media', onclick: async () => { const f = await Util.pickFiles({ accept: '.mp4,.m4v,.mov,.vtt,.jpg,.jpeg,.png,.webp,.txt', multiple: true }); if (f && f.length) importAny(f, { navigate: false }).then(() => renderRoute(true)); } }),
+        btn('Import a folder…', { iconName: 'folderOpen', testid: 'import-folder-media', onclick: async () => { const f = await Util.pickFiles({ directory: true }); if (f && f.length) importAny(f, { navigate: false }).then(() => renderRoute(true)); } }),
+        S.assetIndex ? btn('Scan project folder', { iconName: 'refresh', onclick: scanProjectFolder, testid: 'scan-folder' }) : null] }),
+    h('div', { class: 'stack-lg' },
+      h('div', { class: 'row' }, chip(`${ready} of ${S.stories.length} with all media`, ready ? 'chip-success' : 'chip-neutral', 'star'), missing ? chip(Util.plural(missing, 'story', 'stories') + ' with missing files', 'chip-danger', 'xCircle') : null,
+        S.unmatched.length ? chip(Util.plural(S.unmatched.length, 'unmatched file'), 'chip-warning', 'alert') : null, !S.assetIndex ? chip('Open the project folder to check which files exist', 'chip-outline') : null),
+      S.unmatched.length ? card({ title: 'Files to assign', iconName: 'alert', body: h('div', { class: 'list', style: 'margin:-16px -18px' }, unmatchedRows) }) : null,
+      card({ title: 'Stories', iconName: 'layers', body: S.stories.length ? h('div', { class: 'list', style: 'margin:-16px -18px' }, rows) : h('p', { class: 'muted' }, 'No stories yet. Import transcripts first. Dropping a whole Socialive folder imports transcripts and media together.') }),
+      orphans.length ? card({ title: 'Files in the project folder not used by any story', iconName: 'folder', body: h('div', { class: 'stack-sm' },
+        h('p', { class: 'small muted' }, 'These may be leftovers or files copied in by hand. Files in a folder named after a story can be linked with “Scan project folder”.'),
+        h('ul', { class: 'change-list' }, orphans.slice(0, 50).map((p) => h('li', null, icon(ids.has(p.split('/')[1]) ? 'link' : 'alert'), h('span', { class: 'path' }, p))))) }) : null,
+      h('p', { class: 'small muted' }, h('b', null, 'Matching rules: '), 'a file matches a story when its name contains the story ID, has the same name as the story\'s transcript (words like "transcript", "captions" or "final" are ignored), or contains the employee\'s full name. Ties are never guessed.'))
+  ];
+}
+
+/* ==========================================================================
+   View: People & Teams
+   ========================================================================== */
+function viewPeople() {
+  const teamSel = (value, onchange, label) => h('select', { class: 'select select-sm', 'aria-label': label, onchange }, h('option', { value: '' }, '—'), S.teams.map((t) => h('option', { value: t.id, selected: t.id === value }, t.name || t.id)));
+  const personSel = (value, onchange, label, exclude) => h('select', { class: 'select select-sm', 'aria-label': label, onchange }, h('option', { value: '' }, '—'), S.people.filter((p) => p.id !== exclude).map((p) => h('option', { value: p.id, selected: p.id === value }, (p.name || p.id) + (p.isManager ? ' (manager)' : ''))));
+  const mergeCtl = (kind, rec) => {
+    const others = (kind === 'people' ? S.people : S.teams).filter((x) => x.id !== rec.id);
+    if (!others.length) return null;
+    const sel = h('select', { class: 'select select-sm', 'aria-label': 'Merge into', style: 'max-width:150px' }, h('option', { value: '' }, 'Merge into…'), others.map((x) => h('option', { value: x.id }, x.name || x.id)));
+    sel.addEventListener('change', async () => {
+      const to = sel.value; if (!to) return;
+      const target = kind === 'people' ? S.person(to) : S.team(to);
+      const ok = await confirmModal(`Merge “${rec.name || rec.id}” into “${target.name || to}”?`, h('p', null, `Every story and record that points to ${rec.id} will point to ${to} instead, and ${rec.id} will be removed. Use this when the same ${kind === 'people' ? 'person' : 'team'} was entered twice.`), { confirm: 'Merge', iconName: 'link' });
+      if (!ok) { sel.value = ''; return; }
+      const n = S.mergeRecord(kind, rec.id, to); toast(`Merged. ${Util.plural(n, 'reference')} updated.`, 'success'); renderRoute(true);
+    });
+    return sel;
+  };
+  const teamRows = S.teams.map((t) => {
+    const name = h('input', { class: 'input input-sm', value: t.name || '', 'aria-label': 'Team name', onchange: (e) => { if (e.target.value.trim()) { S.updateRecord('teams', t.id, 'name', e.target.value.trim()); toast('Team renamed.', 'success'); } } });
+    const used = S.usage(t.id);
+    return h('tr', null, h('td', null, name), h('td', { class: 'mono tiny nowrap' }, t.id),
+      h('td', null, personSel(t.managerId, (e) => S.updateRecord('teams', t.id, 'managerId', e.target.value || null), 'Team manager')),
+      h('td', { class: 'num' }, String(S.stories.filter((s) => s.teamId === t.id).length)),
+      h('td', null, h('div', { class: 'row', style: 'flex-wrap:nowrap' }, mergeCtl('teams', t), used ? null : iconBtn('trash', 'Delete team', { onclick: () => { S.deleteRecord('teams', t.id); renderRoute(true); } }))));
+  });
+  const peopleRows = S.people.map((p) => {
+    const name = h('input', { class: 'input input-sm', value: p.name || '', 'aria-label': 'Name', 'data-testid': 'person-name-' + p.id, onchange: (e) => { if (S.renamePerson(p.id, e.target.value)) toast(`Renamed. ${Util.plural(S.storiesFor(p.id).length, 'story', 'stories')} updated.`, 'success'); } });
+    const title = h('input', { class: 'input input-sm', value: p.title || '', 'aria-label': 'Job title', onchange: (e) => S.updateRecord('people', p.id, 'title', e.target.value) });
+    const mgr = h('input', { type: 'checkbox', checked: !!p.isManager, 'aria-label': 'Is a manager', onchange: (e) => S.updateRecord('people', p.id, 'isManager', e.target.checked) });
+    const used = S.usage(p.id);
+    return h('tr', null, h('td', null, name), h('td', { class: 'mono tiny nowrap' }, p.id), h('td', null, title),
+      h('td', null, teamSel(p.teamId, (e) => S.updateRecord('people', p.id, 'teamId', e.target.value || null), 'Team')),
+      h('td', null, personSel(p.managerId, (e) => S.updateRecord('people', p.id, 'managerId', e.target.value || null), 'Manager', p.id)),
+      h('td', { style: 'text-align:center' }, mgr), h('td', { class: 'num' }, String(S.storiesFor(p.id).length)),
+      h('td', null, h('div', { class: 'row', style: 'flex-wrap:nowrap' }, mergeCtl('people', p), used ? null : iconBtn('trash', 'Delete person', { onclick: () => { S.deleteRecord('people', p.id); renderRoute(true); } }))));
+  });
+  const addTeam = h('input', { class: 'input input-sm', placeholder: 'New team name', 'aria-label': 'New team name', style: 'width:220px' });
+  const addPerson = h('input', { class: 'input input-sm', placeholder: 'New manager name', 'aria-label': 'New manager name', style: 'width:220px' });
+  return [
+    pageHead({ eyebrow: 'People & Teams', title: 'People & Teams', lede: 'Reusable records behind the Team and Manager fields. Fix a name once and every story that uses it updates. Merge duplicates that were typed twice.' }),
+    h('div', { class: 'stack-lg' },
+      card({ title: 'Teams', iconName: 'users', headExtra: chip(String(S.teams.length), 'chip-neutral chip-sm'), actions: h('div', { class: 'row', style: 'flex-wrap:nowrap' }, addTeam, btn('Add team', { size: 'sm', iconName: 'plus', onclick: () => { if (addTeam.value.trim()) { S.addTeam(addTeam.value); renderRoute(true); } } })),
+        body: S.teams.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'table' }, h('thead', null, h('tr', null, ['Name', 'ID', 'Manager', 'Stories', ''].map((x) => h('th', null, x)))), h('tbody', null, teamRows))) : h('p', { class: 'muted' }, 'No teams yet. They\'re created when you type a team on a story, or here.') }),
+      card({ title: 'People', iconName: 'user', headExtra: chip(String(S.people.length), 'chip-neutral chip-sm'), actions: h('div', { class: 'row', style: 'flex-wrap:nowrap' }, addPerson, btn('Add manager', { size: 'sm', iconName: 'plus', onclick: () => { if (addPerson.value.trim()) { S.addPerson(addPerson.value, true); renderRoute(true); } } })),
+        body: S.people.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'table', 'data-testid': 'people-table' }, h('thead', null, h('tr', null, ['Name', 'ID', 'Job title', 'Team', 'Manager', 'Is manager', 'Stories', ''].map((x) => h('th', null, x)))), h('tbody', null, peopleRows))) : h('p', { class: 'muted' }, 'No people yet. Each story\'s employee is added here automatically.') }),
+      h('p', { class: 'small muted' }, 'Renaming a person also updates the name on their stories. Job titles on stories are kept as they were at recording time. Records still in use can\'t be deleted; merge them instead.'))
+  ];
+}
+
+/* ==========================================================================
+   Reopen last project folder (folder shortcut only)
+   ========================================================================== */
+async function reopenLastFolder() {
+  const handle = UIState.lastFolder; if (!handle) return;
+  if (!(await confirmDiscardIfNeeded('Reopening the folder'))) return;
+  let perm = 'denied';
+  try { perm = await handle.requestPermission({ mode: 'readwrite' }); } catch (e) { perm = 'denied'; }
+  if (perm !== 'granted') { try { perm = (await handle.requestPermission({ mode: 'read' })) === 'granted' ? 'read' : 'denied'; } catch (e) { perm = 'denied'; } }
+  if (perm === 'denied') { toast('Chrome didn\'t allow access to that folder. Use Open Project Folder instead.', 'warn'); return; }
+  try { const res = await ProjectIO.loadFromHandle(S, handle, perm === 'granted'); afterLoad(res, perm === 'granted' ? 'Project folder reopened.' : 'Project folder reopened read-only.'); }
+  catch (e) { alertModal('Couldn\'t reopen the folder', h('p', null, explainError(e) + ' It may have been moved or renamed. Use Open Project Folder.'), { iconName: 'xCircle', tone: 'danger' }); FolderMemory.forget(); UIState.lastFolder = null; scheduleChrome(); }
+}
+async function forgetLastFolder() { await FolderMemory.forget(); UIState.lastFolder = null; toast('Folder shortcut removed.', 'success'); scheduleChrome(); renderRoute(true); }
 
 /* ==========================================================================
    View: Save & Export
@@ -3719,7 +4418,7 @@ function viewDiagnostics() {
           card({ title: 'Built-in self-tests', iconName: 'beaker', actions: btn('Run self-tests', { size: 'sm', kind: 'secondary', iconName: 'play', testid: 'run-selftests', onclick: async () => { selfTestResult = await SelfTest.run(); Diagnostics.setSelfTest(selfTestResult); renderSt(); } }), body: stBox })),
         h('div', { class: 'stack-lg' },
           card({ title: 'Capabilities', iconName: 'shield', body: h('div', { class: 'diag-list', style: 'margin:-16px -18px' }, probeRows('core')) }),
-          card({ title: 'Needed later (video)', iconName: 'video', body: h('div', { class: 'diag-list', style: 'margin:-16px -18px' }, probeRows('later')) }),
+          card({ title: 'Video', iconName: 'video', body: h('div', { class: 'diag-list', style: 'margin:-16px -18px' }, probeRows('later')) }),
           card({ title: 'If something is blocked', iconName: 'info', body: h('ul', { class: 'small', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--ink-2)' },
             h('li', null, h('b', null, 'Folder writing blocked: '), 'open the folder read-only, then use Save & Export › Download update package.'),
             h('li', null, h('b', null, 'Folder access blocked entirely: '), 'use Import JSON files and Export. Everything else still works.'),
@@ -3991,6 +4690,95 @@ const SelfTest = (() => {
     assert(ProjectIO.sameIgnoringMeta(a, b), 'same'); assert(!ProjectIO.sameIgnoringMeta(a, b.replace('"s"', '"t"')), 'different');
   });
 
+  /* ---------- Milestone 2: media ---------- */
+  const fakeVideo = (name, size = 1000) => new File([new Uint8Array(size)], name, { type: 'video/mp4' });
+  t('Media matching: same name as transcript, story ID, or full name. Ties are never guessed', () => {
+    const st = makeStore();
+    const a = st.createStory({ fileName: 'Avery Interview - Final.txt' }); a.name = 'Avery Example';
+    const b = st.createStory({ fileName: 'jordan_sample_socialive.txt' }); b.name = 'Jordan Sample';
+    const c = st.createStory({ fileName: 'team-update.txt' }); c.name = 'Casey Testperson';
+    const d = st.createStory({ fileName: 'Team_Update.txt' }); d.name = 'Riley Placeholder';
+    eq(Media.score(a, 'Avery Interview - Final.mp4'), 90, 'same stem');
+    eq(Media.score(a, 'avery_interview_captions.vtt'), 90, 'noise words ignored');
+    eq(Media.score(b, 'story-0002 export.mp4'), 100, 'story id');
+    eq(Media.score(c, 'Casey Testperson raw.mov'), 60, 'full name');
+    eq(Media.score(a, 'story-00010.mp4'), 0, 'story-0001 is not a prefix match of story-00010');
+    const { matched, unmatched } = Media.match(st.stories, [fakeVideo('Avery Interview - Final.mp4'), fakeVideo('Avery Interview final 1080p.mp4'), fakeVideo('Jordan Sample.vtt'), fakeVideo('team update.mp4'), fakeVideo('random.mp4'), fakeVideo('notes.txt')]);
+    eq(matched.map((m) => `${m.story.id}:${m.kind}`).sort(), ['story-0001:video', 'story-0002:captions']);
+    eq(unmatched.length, 3, 'duplicate for same story + tie + no match');
+    assert(unmatched.some((u) => /more than one story/.test(u.reason)) && unmatched.some((u) => /No story/.test(u.reason)) && unmatched.some((u) => /Another video/.test(u.reason)), JSON.stringify(unmatched.map((u) => u.reason)));
+  });
+  t('Captions: WebVTT validated against the video length', () => {
+    const vtt = 'WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nOne.\n\n00:00:02.000 --> 00:00:05.900\nTwo.\n';
+    let c = Media.checkVtt(vtt, 6); assert(c.ok && !c.warnings.length, 'valid'); eq(c.cues, 2); eq(c.lastEnd, 5.9);
+    c = Media.checkVtt(vtt, 3); assert(c.ok && /past the end/.test(c.warnings[0]), 'longer than video');
+    c = Media.checkVtt(vtt, 120); assert(/end at/.test(c.warnings[0] || ''), 'much shorter than video');
+    assert(!Media.checkVtt('1\n00:00:01,000 --> 00:00:02,000\nSRT\n', 5).ok, 'SRT is not WebVTT');
+  });
+  t('Captions can be created from caption-style transcripts only', () => {
+    const ts = tsFor(fx(F.f06));
+    const vtt = Media.vttFromTranscript(ts);
+    assert(vtt && Media.checkVtt(vtt, 45).ok, 'valid VTT');
+    const back = Parser.parse(vtt, 'cue');
+    eq(back.segments.map((x) => x.text), ts.parse.segments.map((x) => x.text), 'same caption text');
+    eq(back.segments.map((x) => x.speaker), ts.parse.segments.map((x) => x.speaker), 'speakers kept as voice tags');
+    eq(Media.vttFromTranscript(tsFor(fx(F.f01))), null, 'no end times → no captions');
+  });
+  t('Publishing requires a video and thumbnail that exist or are attached', async () => {
+    const st = makeStore(); const s = st.createStory({ fileName: 'a.txt' });
+    Object.assign(s, { name: 'A', role: 'B', teamId: 't', headline: 'H', description: 'D' });
+    assert(st.publishBlockers(s).length === 2, 'no media → blocked');
+    s.video = 'stories/story-0001/video.mp4'; s.thumbnail = 'stories/story-0001/thumbnail.jpg';
+    eq(st.assetState(s, 'video'), 'unknown'); assert(st.publishBlockers(s).some((b) => /Open the project folder/.test(b)), 'unknown without folder');
+    st.assetIndex = new Set(['stories/story-0001/video.mp4']);
+    eq(st.assetState(s, 'video'), 'saved'); eq(st.assetState(s, 'thumbnail'), 'missing');
+    assert(st.publishBlockers(s).some((b) => /Thumbnail file not found/.test(b)), 'missing thumbnail blocks');
+    await Media.setThumbnail(st, s, new Blob([new Uint8Array([0xFF, 0xD8, 0xFF])], { type: 'image/jpeg' }), 'file', null);
+    eq(st.assetState(s, 'thumbnail'), 'pending'); eq(st.publishBlockers(s), [], 'attached thumbnail counts');
+    eq(st.validate(Object.assign({}, s, { status: 'published', published: true })).errors, [], 'publishable');
+    Media.remove(st, s, 'thumbnail'); eq(s.thumbnail, null); assert(!st.media.has(s.id) || !st.media.get(s.id).thumbnail, 'removed');
+  });
+  t('Zip streams Blob data (videos) with correct CRCs', async () => {
+    const big = new Uint8Array(300000).map((_, i) => (i * 7) % 256);
+    const blob = await Zip.createBlob([{ path: 'stories/s/video.mp4', data: new Blob([big]) }, { path: 'data/x.json', data: '{}' }]);
+    const files = Zip.read(new Uint8Array(await blob.arrayBuffer()));
+    assert(files.every((f) => f.crcOk), 'crc'); eq(files[0].data.length, big.length); eq(files[0].data[12345], big[12345]);
+  });
+  t('Package includes attached media, or lists videos to copy by hand', async () => {
+    const st = makeStore(); const s = st.createStory({ fileName: 'a.txt' });
+    const m = { video: { file: fakeVideo('v.mp4', 2048), name: 'Original Name.mp4', size: 2048 }, captions: { text: 'WEBVTT\n', check: { warnings: [] } } };
+    st.media.set(s.id, m); s.video = `stories/${s.id}/video.mp4`; s.captions = `stories/${s.id}/captions.vtt`;
+    await Media.setThumbnail(st, s, new Blob(['x']), 'auto', 1);
+    let pkg = ProjectIO.packageFiles(st);
+    eq(pkg.media.sort(), ['stories/story-0001/captions.vtt', 'stories/story-0001/thumbnail.jpg', 'stories/story-0001/video.mp4']);
+    pkg = ProjectIO.packageFiles(st, { includeVideos: false });
+    assert(!pkg.media.includes('stories/story-0001/video.mp4') && pkg.skippedVideos[0].name === 'Original Name.mp4', 'video left out');
+    assert(pkg.files.find((f) => f.path === 'HOW-TO-APPLY.txt').data.includes('Original Name.mp4  →  stories/story-0001/video.mp4'), 'instructions say where it goes');
+  });
+  t('Media follows a draft when its ID is renumbered', () => {
+    const st = makeStore(); const s = st.createStory({ fileName: 'a.txt' });
+    st.media.set(s.id, { video: { file: fakeVideo('v.mp4') } }); s.video = 'stories/story-0001/video.mp4';
+    st.load({ stories: st.parseJson('{"stories":[{"id":"story-0001","personId":"person-0009","transcript":"stories/story-0001/transcript.txt"}]}', 'stories') });
+    const d = st.stories[1];
+    eq(d.id, 'story-0002'); eq(d.video, 'stories/story-0002/video.mp4'); assert(st.media.get('story-0002').video, 'media moved'); assert(!st.media.has('story-0001'), 'old key gone');
+  });
+  t('People & Teams: rename updates stories; merge rewires every reference', () => {
+    const st = makeStore(); const s = st.createStory({ fileName: 'a.txt' }); s.name = 'Avery'; st.syncPerson(s);
+    const m1 = st.ensureManager('Quinn Example'), m2 = st.ensureManager('Quinn  Example Dup');
+    s.managerId = m2; const t1 = st.ensureTeam('Learning Design'), t2 = st.ensureTeam('Learning Dsgn'); s.teamId = t2;
+    st.person(s.personId).managerId = m2; st.team(t1).managerId = m2;
+    st.renamePerson(s.personId, 'Avery Example'); eq(s.name, 'Avery Example', 'story name follows rename');
+    eq(st.mergeRecord('people', m2, m1), 3, 'three references moved');
+    eq([s.managerId, st.person(s.personId).managerId, st.team(t1).managerId], [m1, m1, m1]); assert(!st.person(m2), 'duplicate removed');
+    st.mergeRecord('teams', t2, t1); eq(s.teamId, t1); assert(!st.team(t2), 'team removed');
+    assert(!st.deleteRecord('teams', t1), 'in-use team cannot be deleted');
+  });
+  t('VTT generation escapes markup', () => {
+    const ts = tsFor('WEBVTT\n\n00:00:00.000 --> 00:00:02.000\n<v A & B>x < y & "z"\n\n00:00:02.000 --> 00:00:03.000\n<v A & B>ok\n');
+    const v = Media.vttFromTranscript(ts);
+    assert(v.includes('x &lt; y &amp; "z"') && v.includes('<v A &amp; B>'), v);
+  });
+
   async function run() {
     const t0 = performance.now(), results = [];
     for (const x of tests) {
@@ -4056,10 +4844,7 @@ function setupDragDrop() {
     if (!hasFiles(e)) return;
     e.preventDefault(); depth = 0; overlay.hidden = true;
     if (document.querySelector('dialog[open]')) return;
-    const items = [...(e.dataTransfer.items || [])];
-    if (items.some((it) => it.webkitGetAsEntry && it.webkitGetAsEntry() && it.webkitGetAsEntry().isDirectory)) toast('Folders can\'t be dropped yet. Drop the .txt files themselves. (Bulk folder import is planned for Milestone 2.)', 'warn');
-    const files = [...e.dataTransfer.files].filter((f) => f.size > 0 || /\.txt$/i.test(f.name));
-    if (files.length) importTranscriptFiles(files);
+    filesFromDrop(e.dataTransfer).then((files) => { if (files.length) importAny(files); }).catch((err) => toast('Couldn\'t read the dropped items: ' + explainError(err), 'error'));
   });
 }
 function boot() {
@@ -4069,6 +4854,7 @@ function boot() {
   window.addEventListener('beforeunload', (e) => { if (S.hasUnsaved()) { e.preventDefault(); e.returnValue = ''; } });
   setupDragDrop();
   renderRoute();
+  FolderMemory.get().then((h0) => { if (h0) { UIState.lastFolder = h0; scheduleChrome(); } });
   Diagnostics.runPassive().then(() => { if (['dashboard', 'diagnostics'].includes(UIState.route) && !document.querySelector('dialog[open]')) renderRoute(true); });
   window.BTT = Object.freeze({ VERSION, Util, Decode, Parser, Analyzer, Quote, Headlines, Copilot, Zip, ProjectIO, Diagnostics, SelfTest, makeStore, buildTurns, prepareTranscript, makeTranscriptState, isSafeRelPath, sha256Hex, sha256Js, store: S, ready: true });
 }

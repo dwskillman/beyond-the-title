@@ -35,8 +35,10 @@ The builder also imports the older plain-list form (`[ {…}, {…} ]`) and save
 | `quoteStart` | number \| null | The same moment, in seconds (for seeking the video later) |
 | `tags` | string[] | Up to 12, each 32 characters or fewer |
 | `transcript` | string | `stories/<id>/transcript.txt`, stored byte-for-byte as imported |
-| `captions`, `video`, `thumbnail` | string \| null | Milestone 2. For example `stories/<id>/video.mp4` |
-| `duration` | number \| null | Video length in seconds (Milestone 2) |
+| `video` | string \| null | `stories/<id>/video.mp4` (the original extension is kept: `.mp4`, `.m4v` or `.mov`; MP4 with H.264 is recommended) |
+| `thumbnail` | string \| null | `stories/<id>/thumbnail.jpg` (captured frames are JPEG, at most 1280 px wide; imported images keep their type) |
+| `captions` | string \| null | `stories/<id>/captions.vtt` (WebVTT) |
+| `duration` | number \| null | Video length in seconds, read from the video by the browser |
 | `featured` | boolean | Candidate for the homepage featured slot |
 | `status` | `"draft"` \| `"review"` \| `"approved"` \| `"published"` | Editorial workflow. A missing `status` is read as `draft` (or `published` if `published` is true) |
 | `published` | boolean | **The website's only visibility switch.** Invariant: `published === (status === "published")` |
@@ -49,7 +51,7 @@ The builder also imports the older plain-list form (`[ {…}, {…} ]`) and save
 |---|---|
 | Draft | `id`, `personId` and a safe `transcript` path. Everything else may be blank (shown as to-dos) |
 | Ready for review / Approved | Also `name`, `role`, `teamId`, `headline`, `description`. Quote must be verbatim if present. Missing quote, manager or tags is a warning |
-| Published | Also `video` and `thumbnail`, **verified to exist in the project folder**. Missing captions is a warning. Not reachable in Milestone 1 |
+| Published | Also `video` and `thumbnail`, each **either verified in the project folder or attached in this session** (they are then written on save or included in the export). Missing captions is a warning. Captions that run past the end of the video are a warning |
 
 Other checks:
 
@@ -80,7 +82,7 @@ record for a story's person when you edit that story. People or teams created du
 
 ```
 data/stories.json  data/people.json  data/teams.json
-stories/<story-id>/transcript.txt   (Milestone 2: video.mp4, captions.vtt, thumbnail.jpg)
+stories/<story-id>/transcript.txt  video.mp4  thumbnail.jpg  captions.vtt
 backups/stories-<timestamp>.json    (written before each overwrite; never deployed)
 ```
 

@@ -5,22 +5,22 @@ They use Node and Chrome where those are already installed, and are never part o
 
 | Layer | How to run | Covers |
 |---|---|---|
-| **Built-in self-tests** (45) | In the builder: **Diagnostics → Built-in self-tests → Run self-tests**. On a dev machine: `./tests/run-selftest.sh` | Parsing of every fixture format, encodings, word preservation, candidate extraction, quote checks, Copilot reply parsing, IDs, JSON round-trip, validation, rendering safety, zip, read-only folder loading |
-| **End-to-end** (52 checks) | `node tests/e2e.mjs` (Node 22+, Google Chrome) | The real UI in headless Chrome: multi-file import, editing, live preview, multiple stories, real downloads (`unzip -t`), JSON re-import with no data loss, the blocked and missing folder-access fallbacks, **direct save** with backup, read-back and conflict detection (using a stand-in folder, because OS pickers can't be automated), diagnostics, CSP |
+| **Built-in self-tests** (54) | In the builder: **Diagnostics → Built-in self-tests → Run self-tests**. On a dev machine: `./tests/run-selftest.sh` | Parsing of every fixture format, encodings, word preservation, candidate extraction, quote checks, Copilot reply parsing, IDs, JSON round-trip, validation, rendering safety, zip, read-only folder loading, media matching, VTT checks and generation, publish rules, people and teams merges |
+| **End-to-end** (79 checks) | `node tests/e2e.mjs` (Node 22+, Google Chrome) | The real UI in headless Chrome: multi-file import, editing, live preview, multiple stories, real downloads (`unzip -t`), JSON re-import with no data loss, the blocked and missing folder-access fallbacks, **direct save** with backup, read-back and conflict detection (using a stand-in folder, because OS pickers can't be automated), diagnostics, CSP, **Milestone 2:** folder import with name matching, video length, auto and manual thumbnail capture on `file://`, captions, manual assignment, publishing, zip with video (byte-identical), direct save of media, Scan project folder, reopen last folder, People & Teams |
 | **Static checks** | `node tests/check-static.mjs` | No external URLs or network APIs, no data rendered as HTML, no browser storage, embedded fixtures in sync, no company names or emails, no media outside `fixtures/` |
 
 `node tests/embed-fixtures.mjs` copies `fixtures/` into `builder.html` after you edit a fixture.
 
-## Corporate Mac checklist (Milestone 1)
+## Corporate Mac checklist
 
-Results on the corporate Mac have **not** been verified yet. They depend on your organization's Chrome policies.
+The user confirmed on 2026-11-09 that the Milestone 1 checks pass on the corporate Mac: diagnostics passed and direct saving worked. Section D (video) has not been run there yet. Re-run A after any Chrome or policy update.
 
 **A. Open and diagnose (about 5 minutes)**
 
 1. Copy `builder/builder.html` to the Mac using an approved method. It's one self-contained file.
 2. Open it in Chrome (drag it onto a Chrome window, or ⌘O).
-3. Go to **Diagnostics**. Run all six live tests. For **Write to a folder**, use an empty test folder.
-4. Click **Run self-tests**. Expect "45 of 45 passed".
+3. Go to **Diagnostics**. Run all seven live tests. For **Write to a folder**, use an empty test folder.
+4. Click **Run self-tests**. Expect "54 of 54 passed".
 5. Click **Copy diagnostics report** and paste it back to the project thread.
 
 **B. Your four Socialive transcripts**
@@ -41,3 +41,11 @@ Results on the corporate Mac have **not** been verified yet. They depend on your
 3. Click **Save to Project**, review the file list, then confirm. In Finder, check that `data/stories.json` and `stories/story-000N/transcript.txt` exist.
 4. If folder access is blocked: use the read-only option, then **Save & Export → Download update package (.zip)**. Follow HOW-TO-APPLY.txt.
 5. Close the tab, reopen the builder, and open the same folder. Your stories should load with their transcripts.
+
+**D. Milestone 2: video (when you have the MP4s)**
+
+1. On **Diagnostics**, run **Read a video and capture a frame** with a real Socialive MP4.
+2. Drop the whole Socialive export folder (transcripts, videos, captions) on **Import**. Check the **Media** page: is every video on the right story? Assign anything left over.
+3. In a story's **Video & media** card, play the video, try **Jump to quote**, and capture a better thumbnail.
+4. Approve one story, turn on **Published**, then **Save to Project**. In Finder, check `stories/story-000N/` has `video.mp4`, `thumbnail.jpg` and `captions.vtt`.
+5. Close the tab, reopen the builder, and click **Reopen “your folder”**.

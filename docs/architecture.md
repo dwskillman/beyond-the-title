@@ -48,7 +48,9 @@ A single file with inline CSS and JS. It has no dependencies and works from `fil
 | `Copilot` | Prompt builder; parser for the pasted response; quote checks |
 | `Store` | In-memory project state, IDs, merge, validation, dirty tracking. Unknown fields preserved |
 | `ProjectIO` | Direct (File System Access) / read-only folder (`webkitdirectory`) / standalone; save, backup, verify; export |
-| `Zip` | Store-only ZIP writer and reader (CRC32) for the update package |
+| `Zip` | Store-only ZIP writer and reader (CRC32) for the update package. Videos are streamed for the CRC, never copied into memory |
+| `Media` | File-name matching, video probing (`<video>` metadata), frame capture (`<canvas>` → JPEG), VTT validation and generation. Attached files are kept in memory (as `File` references) until saved or exported |
+| `FolderMemory` | The single use of browser storage: one `FileSystemDirectoryHandle` in IndexedDB for "Reopen last project". No content |
 | `UI` | Hash router and views: Dashboard, Import, Stories, Story editor, Save & Export, Diagnostics |
 | `SelfTest` | Built-in test suite (`#selftest`, or the button on the Diagnostics page) |
 
@@ -74,7 +76,7 @@ one at a time, or as an **update package `.zip`** that also contains the new tra
   Inline script is required for a single file. All network access is blocked.
 - All transcript and JSON text is rendered with `textContent` and DOM APIs. `innerHTML` is used only for constant
   SVG icons, and `tests/check-static.mjs` enforces this.
-- No `localStorage` or IndexedDB. Unsaved work lives only in memory, and closing the tab warns you first.
+- No browser storage of content. The only stored item is a folder shortcut (a directory handle) for "Reopen last project", in a module that `tests/check-static.mjs` isolates and checks. Unsaved work lives only in memory, and closing the tab warns you first.
 - Folder access is only requested from explicit button clicks. Every write stays inside the folder you chose.
   IDs used in paths are restricted to `[a-z0-9-]`.
 - Imported JSON is validated. Unknown fields are kept as data and never executed or rendered as HTML.
@@ -105,3 +107,6 @@ It uses the design system shared with the builder (CSS custom properties). See t
 | 5 | Working JSON and release JSON are separate (M4) | Drafts and transcripts never reach employees |
 | 6 | No browser storage | Data-handling policy; in-memory state with an unsaved-changes guard |
 | 7 | CSP enforced in the builder | Makes "no network" provable, not just promised |
+| 8 | Media matched by file name, never guessed on ties | Socialive exports share a base name across .txt/.mp4/.vtt; wrong guesses would attach someone else's video |
+| 9 | Thumbnails captured in the browser (Canvas → JPEG) | No FFmpeg or installs. Auto-captured, then the admin can pick a better frame |
+| 10 | Folder shortcut stored in IndexedDB | Saves re-navigating each session. It stores only a handle, Chrome still asks for permission, and it's easy to forget |

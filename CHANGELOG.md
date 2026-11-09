@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0] - 2026-11-09: Milestone 2 (video & content)
+
+### Added
+- **Bulk import:** pick or drop a whole Socialive export folder. Transcripts become stories; videos, captions and images are matched by file name (story ID, transcript name, or full name). Ties are never guessed. Unmatched files go to an assign list.
+- **Video & media card** in the editor: preview with captions, length and resolution read by the browser, jump to the quote's timestamp, replace or remove.
+- **Thumbnails:** auto-captured from the video (Canvas → JPEG), recapture from any paused frame, or import an image. Shown on the story card.
+- **Captions:** attach WebVTT and validate it against the video length, or create captions from caption-style transcripts.
+- **Publishing:** allowed once video and thumbnail exist in the folder or are attached.
+- **Save and export with media:** direct save writes video, thumbnail and captions (size and content verified). The update package can include videos (streamed, not loaded into memory) or list them to copy by hand.
+- **Media page:** per-story asset status, missing files, unused files in the project folder, and Scan project folder to link hand-copied files.
+- **People & Teams page:** rename (propagates to stories), job titles, team and manager assignment, merge duplicates, delete unused records.
+- **Reopen last project folder:** stores a folder shortcut only.
+- Diagnostics live test: read a video and capture a frame.
+
+### Changed
+- The update package's instructions now say to copy files into existing story folders rather than replace them.
+- A status change refreshes the editor, so the Published switch enables as soon as a story is approved.
+
+### Tests
+- 54 self-tests (9 new), 79 E2E checks (27 new, using a synthetic test-pattern MP4), and static checks that isolate the folder-shortcut storage.
+
 ## [0.1.0-builder] - 2026-11-09: Milestone 1
 
 ### Added

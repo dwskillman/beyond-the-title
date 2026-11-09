@@ -31,7 +31,9 @@ const inner = code.split('\n').map((l, i) => [i, l]).filter(([, l]) => /\.innerH
 check('innerHTML only used for constant icons (marked static-icon)', inner.length === 0, inner.map(([i, l]) => `line ${i}: ${l.trim()}`).join('\n'));
 check('no insertAdjacentHTML / outerHTML / document.write', !/insertAdjacentHTML|outerHTML\s*=|document\.write/.test(code));
 check('no eval() or new Function()', !/\beval\(|new Function\(/.test(code));
-check('no browser storage (localStorage / sessionStorage / IndexedDB)', !/localStorage|sessionStorage|indexedDB/.test(code));
+const fm = (code.match(/\/\* FolderMemory:BEGIN[\s\S]*?\/\* FolderMemory:END \*\//) || [''])[0];
+check('no browser storage outside the folder-shortcut module', !!fm && !/localStorage|sessionStorage|indexedDB/.test(code.replace(fm, '')));
+check('folder-shortcut module stores only a directory handle', !/localStorage|sessionStorage/.test(fm) && (fm.match(/\.put\(/g) || []).length === 1 && /put\(handle, KEY\)/.test(fm));
 check('no network APIs (fetch / XMLHttpRequest / WebSocket / sendBeacon)', !/\bfetch\(|XMLHttpRequest|new WebSocket|sendBeacon|EventSource/.test(code));
 check('embedded fixtures identical to /fixtures', fixtures === buildBlock(), 'run: node tests/embed-fixtures.mjs');
 

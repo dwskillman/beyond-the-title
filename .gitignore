@@ -55,6 +55,7 @@ Thumbs.db
 !fixtures/**/*.vtt
 # Synthetic test media only (a generated test pattern; never real recordings)
 !fixtures/media/*.mp4
+!fixtures/sample-site/thumbnails/*.jpg
 
 # Node tooling is optional and dev-only; never commit installs
 node_modules/

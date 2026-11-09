@@ -17,6 +17,13 @@ The **release folder** (built in Milestone 4) is what gets uploaded. It contains
 | 8 | Is directory listing disabled? | Prevents browsing unpublished folders if any were uploaded by mistake |
 | 9 | Are there content scanning or approval steps on upload? | Affects publishing time |
 
+## What the site needs from the server
+
+- Serve static files with correct types: `.html`, `.css`, `.js`, `.json`, `.jpg`, `.mp4` (`video/mp4`), `.vtt` (`text/vtt`).
+- **Byte-range requests for `.mp4`** (for seeking).
+- No rewrite rules: the site uses hash URLs (`index.html#/story/story-0001`).
+- It requests only its own files: `index.html`, `css/`, `js/`, `data/`, `stories/`.
+
 ## Known requirements of the release
 
 - Relative paths only (`data/stories.json`, `stories/<id>/video.mp4`).

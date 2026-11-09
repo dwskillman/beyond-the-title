@@ -400,6 +400,21 @@ try {
     await p.click('[data-testid=reopen-folder]');
     await p.waitFor(S('mode === "direct" && window.BTT.store.stories.length === 2'), 15000);
     check('M2: reopened folder loads stories with saved media', await p.eval(S('assetState(window.BTT.store.get("story-0001"), "thumbnail")')) === 'saved' && await p.eval(S('get("story-0001").name')) === 'Avery Q. Example');
+    // Milestone 3: install the website files, and site-data.js is written on save
+    await p.eval('location.hash = "#/export"'); // same document: keep the reopened folder
+    await p.waitFor('document.querySelector("[data-testid=install-site]")', 10000);
+    check('M3: website shown as not installed yet', (await p.eval('document.querySelector("[data-testid=website-card]").textContent')).includes('Not installed'));
+    await p.click('[data-testid=install-site]');
+    await p.waitFor('document.querySelector("[data-testid=site-plan]")');
+    await p.click('[data-testid=modal-confirm]');
+    await p.waitFor('document.querySelector("[data-testid=website-card]") && document.querySelector("[data-testid=website-card]").textContent.includes("up to date")', 15000);
+    const siteIdx = await p.eval(`(async () => { const fs = await ${opfs2}; const f = await fs.get('index.html'); const a = await fs.get('js/app.js'); return { idx: f && await f.text(), app: a && await a.text() }; })()`);
+    check('M3: website files installed byte-for-byte', siteIdx.idx === readFileSync(join(ROOT, 'site', 'index.html'), 'utf8') && siteIdx.app === readFileSync(join(ROOT, 'site', 'js', 'app.js'), 'utf8'));
+    const sdText = await p.eval(`(async () => { const fs = await ${opfs2}; const f = await fs.get('data/site-data.js'); return f && await f.text(); })()`);
+    const sd = sdText && JSON.parse(sdText.slice(sdText.indexOf('= ') + 2, sdText.lastIndexOf(';')));
+    check('M3: save wrote data/site-data.js with stories and caption text', !!sd && sd.stories.stories.length === 2 && Object.values(sd.captions).some((c) => c.startsWith('WEBVTT')));
+    await p.click('[data-testid=save-project]'); await sleep(500);
+    check('M3: site-data.js is stable (saving again writes nothing)', !(await p.eval('!!document.querySelector("[data-testid=save-plan]")')));
     check('no console errors in direct media flow', p.errors.length === 0, p.errors.join('\n'));
     await p.send('Page.close').catch(() => {});
   } finally { server2.close(); }

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-09T12:00:00.000Z",
+  "teams": [
+    {
+      "id": "learning-design",
+      "name": "Learning Design",
+      "managerId": "person-0101"
+    },
+    {
+      "id": "payments-platform",
+      "name": "Payments Platform",
+      "managerId": "person-0102"
+    },
+    {
+      "id": "fraud-prevention",
+      "name": "Fraud Prevention",
+      "managerId": "person-0102"
+    },
+    {
+      "id": "data-analytics",
+      "name": "Data & Analytics",
+      "managerId": "person-0103"
+    },
+    {
+      "id": "customer-care",
+      "name": "Customer Care",
+      "managerId": "person-0103"
+    },
+    {
+      "id": "product-design",
+      "name": "Product Design",
+      "managerId": "person-0101"
+    },
+    {
+      "id": "treasury-operations",
+      "name": "Treasury Operations",
+      "managerId": "person-0103"
+    },
+    {
+      "id": "community-partnerships",
+      "name": "Community Partnerships",
+      "managerId": "person-0101"
+    }
+  ]
+}

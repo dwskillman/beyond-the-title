@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="btt-site-version" content="0.3.0">
+<!-- Only this site's own files. No third-party requests of any kind. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file: data: blob:; media-src 'self' file: blob:; connect-src 'self'; font-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Beyond the Title</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%237456DB'/%3E%3Cpath d='M16 12.5v15a1.2 1.2 0 0 0 1.8 1l11.5-7.5a1.2 1.2 0 0 0 0-2L17.8 11.5a1.2 1.2 0 0 0-1.8 1z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<a class="skip-link" href="#view">Skip to main content</a>
+<noscript><p class="noscript">Beyond the Title needs JavaScript turned on.</p></noscript>
+<div class="app">
+  <aside class="sidebar" id="sidebar" aria-label="Beyond the Title">
+    <a class="brand" href="#/" aria-label="Beyond the Title home">
+      <svg class="brand-logo" viewBox="0 0 40 40" aria-hidden="true">
+        <defs><linearGradient id="site-logo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B091FF"/><stop offset=".5" stop-color="#7C5CE6"/><stop offset="1" stop-color="#5B3CCB"/></linearGradient></defs>
+        <rect width="40" height="40" rx="11" fill="url(#site-logo-g)"/>
+        <path d="M0 11C0 4.9 4.9 0 11 0h18c-9 3-17 9-23 22-2 4-4 9-6 13V11z" fill="#fff" opacity=".14"/>
+        <path d="M16 12.5v15a1.2 1.2 0 0 0 1.8 1l11.5-7.5a1.2 1.2 0 0 0 0-2L17.8 11.5a1.2 1.2 0 0 0-1.8 1z" fill="#fff"/>
+      </svg>
+      <span class="brand-name">Beyond<br>the Title</span>
+    </a>
+    <nav class="nav" id="nav" aria-label="Sections"></nav>
+    <div class="sidebar-foot" id="sidebar-foot"></div>
+  </aside>
+  <div class="main">
+    <header class="topbar" id="topbar">
+      <div class="search" id="search" role="search"></div>
+    </header>
+    <main class="view" id="view" tabindex="-1" aria-live="polite"></main>
+    <footer class="footer" id="footer"></footer>
+  </div>
+</div>
+<script src="js/core.js"></script>
+<script src="js/data.js"></script>
+<script src="js/search.js"></script>
+<script src="js/video-player.js"></script>
+<script src="js/views.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 // so "Try with sample data" and the built-in self-tests use exactly the committed files.
 //   node tests/embed-fixtures.mjs          → rewrite builder.html
 //   node tests/embed-fixtures.mjs --check  → exit 1 if builder.html is out of date
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,16 +35,30 @@ export function buildBlock() {
   return parts.join('\n');
 }
 
+/** Website files (site/) as base64 blocks, so the builder can install them into a project folder. */
+export function siteFiles() {
+  const base = join(root, 'site'), out = [];
+  (function walk(d) { for (const n of readdirSync(d).sort()) { const p = join(d, n); if (statSync(p).isDirectory()) walk(p); else if (n !== 'README.md' && !n.startsWith('.')) out.push(p.slice(base.length + 1)); } })(base);
+  return out;
+}
+export function buildSiteBlock() {
+  const parts = ['<!-- SITE:BEGIN -->'];
+  for (const rel of siteFiles()) parts.push(`<script type="text/plain" data-site-file="${rel}">${readFileSync(join(root, 'site', rel)).toString('base64')}</script>`);
+  parts.push('<!-- SITE:END -->');
+  return parts.join('\n');
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const html = readFileSync(builder, 'utf8');
   const re = /<!-- FIXTURES:BEGIN -->[\s\S]*?<!-- FIXTURES:END -->/;
-  if (!re.test(html)) { console.error('FIXTURES markers not found in builder.html'); process.exit(2); }
-  const next = html.replace(re, buildBlock());
+  const reSite = /<!-- SITE:BEGIN -->[\s\S]*?<!-- SITE:END -->/;
+  if (!re.test(html) || !reSite.test(html)) { console.error('FIXTURES/SITE markers not found in builder.html'); process.exit(2); }
+  const next = html.replace(re, buildBlock()).replace(reSite, buildSiteBlock());
   if (process.argv.includes('--check')) {
-    if (next !== html) { console.error('Embedded fixtures are out of date. Run: node tests/embed-fixtures.mjs'); process.exit(1); }
-    console.log('Embedded fixtures match /fixtures.');
+    if (next !== html) { console.error('Embedded fixtures or website files are out of date. Run: node tests/embed-fixtures.mjs'); process.exit(1); }
+    console.log('Embedded fixtures match /fixtures and website files match /site.');
   } else {
     writeFileSync(builder, next);
-    console.log(`Embedded ${EMBEDDED.length} fixtures into builder/builder.html`);
+    console.log(`Embedded ${EMBEDDED.length} fixtures and ${siteFiles().length} website files into builder/builder.html`);
   }
 }

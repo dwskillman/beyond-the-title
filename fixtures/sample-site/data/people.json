@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-09T12:00:00.000Z",
+  "people": [
+    {
+      "id": "person-0001",
+      "name": "Avery Example",
+      "title": "Learning Designer",
+      "teamId": "learning-design",
+      "managerId": "person-0101",
+      "isManager": false
+    },
+    {
+      "id": "person-0002",
+      "name": "Jordan Sample",
+      "title": "Software Engineer",
+      "teamId": "payments-platform",
+      "managerId": "person-0102",
+      "isManager": false
+    },
+    {
+      "id": "person-0003",
+      "name": "Riley Placeholder",
+      "title": "Analytics Manager",
+      "teamId": "data-analytics",
+      "managerId": "person-0103",
+      "isManager": true
+    },
+    {
+      "id": "person-0004",
+      "name": "Morgan Fixture",
+      "title": "Customer Service Specialist",
+      "teamId": "customer-care",
+      "managerId": "person-0103",
+      "isManager": false
+    },
+    {
+      "id": "person-0005",
+      "name": "Casey Testperson",
+      "title": "Fraud Analyst",
+      "teamId": "fraud-prevention",
+      "managerId": "person-0102",
+      "isManager": false
+    },
+    {
+      "id": "person-0006",
+      "name": "Taylor Mockname",
+      "title": "Product Designer",
+      "teamId": "product-design",
+      "managerId": "person-0101",
+      "isManager": false
+    },
+    {
+      "id": "person-0007",
+      "name": "José Muestra",
+      "title": "Treasury Analyst",
+      "teamId": "treasury-operations",
+      "managerId": "person-0103",
+      "isManager": false
+    },
+    {
+      "id": "person-0008",
+      "name": "Renée Sample",
+      "title": "Partnerships Lead",
+      "teamId": "community-partnerships",
+      "managerId": "person-0101",
+      "isManager": false
+    },
+    {
+      "id": "person-0009",
+      "name": "Drew Draftperson",
+      "title": "Operations Analyst",
+      "teamId": "customer-care",
+      "managerId": "person-0103",
+      "isManager": false
+    },
+    {
+      "id": "person-0101",
+      "name": "Quinn Manager-Example",
+      "title": "Director, Learning & Design",
+      "teamId": "learning-design",
+      "managerId": null,
+      "isManager": true
+    },
+    {
+      "id": "person-0102",
+      "name": "Harper Leadsample",
+      "title": "Head of Payments & Fraud",
+      "teamId": "payments-platform",
+      "managerId": null,
+      "isManager": true
+    },
+    {
+      "id": "person-0103",
+      "name": "Dana Directorson",
+      "title": "Director, Operations & Analytics",
+      "teamId": "data-analytics",
+      "managerId": null,
+      "isManager": true
+    }
+  ]
+}

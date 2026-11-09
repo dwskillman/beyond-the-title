@@ -91,10 +91,16 @@ one at a time, or as an **update package `.zip`** that also contains the new tra
   and are flagged *Generic* or *Weak evidence* when the support is thin.
 - Suggestions are labeled **keyword-based**. Nothing in the builder is described as AI.
 
-## Employee website (`site/`, Milestone 3)
+## Employee website (`site/`)
 
-Vanilla JS that reads `data/stories.json`, `data/people.json` and `data/teams.json`, and filters to `published === true`.
-It uses the design system shared with the builder (CSS custom properties). See the roadmap.
+Classic scripts, no build step or framework, hash routing, the same design tokens as the builder. See [site/README.md](../site/README.md).
+
+- **Data:** over http(s) it reads `data/*.json` with relative `fetch()`. Opened from disk it loads `data/site-data.js` instead,
+  a script-tag copy the builder writes on every save, including caption text, because browsers block `fetch()` and `<track>` on `file://`.
+- **Visibility:** only `published === true`. Local preview can show drafts (the button appears only on `file://` when drafts exist).
+- **Security:** CSP limits everything to the site's own files. All text is rendered with DOM APIs, and asset paths must be safe relative paths.
+- **Distribution:** the builder embeds the site files (base64, kept in sync by `tests/embed-fixtures.mjs`) and installs or updates them in the
+  project folder, never touching `data/`, `stories/` or `backups/`.
 
 ## Decision log
 
@@ -109,4 +115,7 @@ It uses the design system shared with the builder (CSS custom properties). See t
 | 7 | CSP enforced in the builder | Makes "no network" provable, not just promised |
 | 8 | Media matched by file name, never guessed on ties | Socialive exports share a base name across .txt/.mp4/.vtt; wrong guesses would attach someone else's video |
 | 9 | Thumbnails captured in the browser (Canvas → JPEG) | No FFmpeg or installs. Auto-captured, then the admin can pick a better frame |
+| 11 | Hash routing (`#/story/…`) | Works on any static host with no rewrite rules, and from disk |
+| 12 | `data/site-data.js` alongside the JSON | Lets the site open from disk on a locked-down Mac with no local server |
+| 13 | Builder carries the website files | One file to move to the corporate Mac; installs or updates the site with one click |
 | 10 | Folder shortcut stored in IndexedDB | Saves re-navigating each session. It stores only a handle, Chrome still asks for permission, and it's easy to forget |

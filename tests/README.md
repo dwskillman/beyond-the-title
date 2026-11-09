@@ -5,11 +5,12 @@ They use Node and Chrome where those are already installed, and are never part o
 
 | Layer | How to run | Covers |
 |---|---|---|
-| **Built-in self-tests** (54) | In the builder: **Diagnostics → Built-in self-tests → Run self-tests**. On a dev machine: `./tests/run-selftest.sh` | Parsing of every fixture format, encodings, word preservation, candidate extraction, quote checks, Copilot reply parsing, IDs, JSON round-trip, validation, rendering safety, zip, read-only folder loading, media matching, VTT checks and generation, publish rules, people and teams merges |
-| **End-to-end** (79 checks) | `node tests/e2e.mjs` (Node 22+, Google Chrome) | The real UI in headless Chrome: multi-file import, editing, live preview, multiple stories, real downloads (`unzip -t`), JSON re-import with no data loss, the blocked and missing folder-access fallbacks, **direct save** with backup, read-back and conflict detection (using a stand-in folder, because OS pickers can't be automated), diagnostics, CSP, **Milestone 2:** folder import with name matching, video length, auto and manual thumbnail capture on `file://`, captions, manual assignment, publishing, zip with video (byte-identical), direct save of media, Scan project folder, reopen last folder, People & Teams |
+| **Built-in self-tests** (56) | In the builder: **Diagnostics → Built-in self-tests → Run self-tests**. On a dev machine: `./tests/run-selftest.sh` | Parsing of every fixture format, encodings, word preservation, candidate extraction, quote checks, Copilot reply parsing, IDs, JSON round-trip, validation, rendering safety, zip, read-only folder loading, media matching, VTT checks and generation, publish rules, people and teams merges |
+| **Builder end-to-end** (83 checks) | `node tests/e2e.mjs` (Node 22+, Google Chrome) | The real UI in headless Chrome: multi-file import, editing, live preview, multiple stories, real downloads (`unzip -t`), JSON re-import with no data loss, the blocked and missing folder-access fallbacks, **direct save** with backup, read-back and conflict detection (using a stand-in folder, because OS pickers can't be automated), diagnostics, CSP, **Milestone 2:** folder import with name matching, video length, auto and manual thumbnail capture on `file://`, captions, manual assignment, publishing, zip with video (byte-identical), direct save of media, Scan project folder, reopen last folder, People & Teams |
+| **Website end-to-end** (42 checks) | `node tests/site-e2e.mjs` | The employee site with synthetic data, over http and from disk: published-only filtering, search by every field, filters, ⌘K, story player with captions and jump-to-quote, Surprise me, all directory pages, phone width, preview drafts, empty and error states, no foreign requests |
 | **Static checks** | `node tests/check-static.mjs` | No external URLs or network APIs, no data rendered as HTML, no browser storage, embedded fixtures in sync, no company names or emails, no media outside `fixtures/` |
 
-`node tests/embed-fixtures.mjs` copies `fixtures/` into `builder.html` after you edit a fixture.
+`node tests/embed-fixtures.mjs` copies `fixtures/` and `site/` into `builder.html` after you edit either. `node tests/make-site-preview.mjs` builds a browsable sample site in `test-output/`.
 
 ## Corporate Mac checklist
 
@@ -20,7 +21,7 @@ The user confirmed on 2026-11-09 that the Milestone 1 checks pass on the corpora
 1. Copy `builder/builder.html` to the Mac using an approved method. It's one self-contained file.
 2. Open it in Chrome (drag it onto a Chrome window, or ⌘O).
 3. Go to **Diagnostics**. Run all seven live tests. For **Write to a folder**, use an empty test folder.
-4. Click **Run self-tests**. Expect "54 of 54 passed".
+4. Click **Run self-tests**. Expect "56 of 56 passed".
 5. Click **Copy diagnostics report** and paste it back to the project thread.
 
 **B. Your four Socialive transcripts**
@@ -49,3 +50,9 @@ The user confirmed on 2026-11-09 that the Milestone 1 checks pass on the corpora
 3. In a story's **Video & media** card, play the video, try **Jump to quote**, and capture a better thumbnail.
 4. Approve one story, turn on **Published**, then **Save to Project**. In Finder, check `stories/story-000N/` has `video.mp4`, `thumbnail.jpg` and `captions.vtt`.
 5. Close the tab, reopen the builder, and click **Reopen “your folder”**.
+
+**E. Milestone 3: the website**
+
+1. **Save & Export → Employee website → Install website files**, then **Save to Project**.
+2. In Finder, drag the project folder's `index.html` onto Chrome. Check that stories, search (try a manager's or team's name), Surprise me and a video with captions all work.
+3. Click **Preview drafts** at the bottom to see unpublished stories, then **Hide drafts**.

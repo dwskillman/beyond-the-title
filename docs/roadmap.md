@@ -36,12 +36,16 @@ and reports back: the diagnostics report, the detected format, candidate quality
 - [x] People & Teams page: rename (propagates to stories), assign managers, merge duplicates, delete unused
 - [x] Reopen the last project folder in one click (stores a folder shortcut only)
 
-## M3: Employee-facing website (`site/`)
+## M3: Employee-facing website (`site/`, v0.3.0)
 
-Homepage, sidebar navigation, universal search (name, manager, team, project, keyword), featured story,
-story cards, people directory, manager and team exploration, profiles, video player with captions,
-Surprise Me, People to Discover, recently added, related stories, responsive layout, accessibility.
-Everything loads from static JSON. No popularity metrics.
+- [x] Homepage modelled on the approved mockup: hero, Surprise me / Explore projects / Find my team, featured story (rotates daily among featured), People to discover (with shuffle), recently added, explore by team
+- [x] Universal search (names, managers, teams, projects, tags, story text; accent-insensitive) with ⌘K / `/` and keyboard navigation
+- [x] Explore page with team, manager, project and topic filters (shareable URLs)
+- [x] Story pages: video player with captions and "Watch this moment" (jump to the quote), related stories
+- [x] People directory, profiles, Teams, Projects, Managers (managers' own stories plus their team's stories)
+- [x] Only `published` stories are shown. Drafts are visible only in local preview, with a clear banner
+- [x] Works on any static server (hash routing) and from disk (via `data/site-data.js`); responsive; reduced motion; no popularity metrics
+- [x] The builder installs and updates the site files and writes `data/site-data.js` on save
 
 ## M4: Publishing and deployment
 

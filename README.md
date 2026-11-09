@@ -16,7 +16,7 @@ no build step, no framework and no third-party network requests.
 |---|---|---|
 | **M1** | Repository, architecture, **standalone Content Builder** | ✅ Delivered and tested on the corporate Mac |
 | **M2** | Video, thumbnails, captions, bulk import and matching, publishing, people & teams | ✅ Delivered (v0.2.0). Parser tuning waits for a masked Socialive sample |
-| M3 | Employee-facing website | Planned |
+| **M3** | Employee-facing website (`site/`), installed by the builder, previewable from disk | ✅ Delivered (v0.3.0) |
 | M4 | Release packaging for Syndicate | Planned |
 | M5 | Admin guides and final testing | Planned |
 
@@ -38,7 +38,7 @@ your organization approves; it needs no other files.
 
 ```
 builder/builder.html   Standalone Content Builder (admin tool, never deployed)
-site/                  Employee-facing website source (Milestone 3)
+site/                  Employee-facing website (static HTML/CSS/JS), installed into the project folder by the builder
 fixtures/              Synthetic test data only: transcripts, JSON, a sample project folder
 tests/                 Self-test runner, optional dev-machine E2E, static checks
 docs/                  Architecture, data model, roadmap, workflow, deployment, browser notes

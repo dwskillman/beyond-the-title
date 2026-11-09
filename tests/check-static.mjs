@@ -5,14 +5,15 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildBlock } from './embed-fixtures.mjs';
+import { buildBlock, buildSiteBlock, siteFiles } from './embed-fixtures.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'builder', 'builder.html'), 'utf8');
 const scriptStart = html.lastIndexOf('<script>\n/* =====');
 const code = html.slice(scriptStart, html.lastIndexOf('</script>'));
 const fixtures = (html.match(/<!-- FIXTURES:BEGIN -->[\s\S]*?<!-- FIXTURES:END -->/) || [''])[0];
-const outsideFixtures = html.replace(fixtures, '');
+const siteBlock = (html.match(/<!-- SITE:BEGIN -->[\s\S]*?<!-- SITE:END -->/) || [''])[0];
+const outsideFixtures = html.replace(fixtures, '').replace(siteBlock, '');
 let failed = 0;
 const check = (name, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${ok || !detail ? '' : '\n     ' + detail}`); if (!ok) failed++; };
 
@@ -36,9 +37,30 @@ check('no browser storage outside the folder-shortcut module', !!fm && !/localSt
 check('folder-shortcut module stores only a directory handle', !/localStorage|sessionStorage/.test(fm) && (fm.match(/\.put\(/g) || []).length === 1 && /put\(handle, KEY\)/.test(fm));
 check('no network APIs (fetch / XMLHttpRequest / WebSocket / sendBeacon)', !/\bfetch\(|XMLHttpRequest|new WebSocket|sendBeacon|EventSource/.test(code));
 check('embedded fixtures identical to /fixtures', fixtures === buildBlock(), 'run: node tests/embed-fixtures.mjs');
+check('embedded website files identical to /site', siteBlock === buildSiteBlock(), 'run: node tests/embed-fixtures.mjs');
+
+// Employee website (site/): same rules, plus fetch() only for its own relative data files.
+const siteHtml = readFileSync(join(ROOT, 'site', 'index.html'), 'utf8');
+const siteJs = siteFiles().filter((f) => f.endsWith('.js')).map((f) => [f, readFileSync(join(ROOT, 'site', f), 'utf8')]);
+const siteCss = readFileSync(join(ROOT, 'site', 'css', 'styles.css'), 'utf8');
+const siteAll = [siteHtml, siteCss, ...siteJs.map((x) => x[1])].join('\n');
+const siteUrls = [...siteAll.matchAll(/https?:\/\/[^\s'")%]+/g)].map((m) => m[0]).filter((u) => !u.startsWith('http://www.w3.org/2000/svg'));
+check('site: no external URLs', siteUrls.length === 0, siteUrls.join(', '));
+check('site: CSP meta tag limits everything to its own files', /http-equiv="Content-Security-Policy" content="default-src 'self';[^"]*connect-src 'self'/.test(siteHtml));
+check('site: scripts are local files only', [...siteHtml.matchAll(/<script[^>]*src="([^"]+)"/g)].every((m) => /^js\/[a-z-]+\.js$/.test(m[1])));
+check('site: no inline <script> or style="" in index.html', !/<script>(?!\s*<\/script>)/.test(siteHtml) && !/\sstyle="/.test(siteHtml));
+const siteInner = siteJs.flatMap(([f, t]) => t.split('\n').map((l, i) => [f, i, l])).filter(([, , l]) => /\.innerHTML\s*=/.test(l) && !/static-icon/.test(l));
+check('site: innerHTML only for constant icons', siteInner.length === 0, siteInner.map(([f, i, l]) => `${f}:${i + 1} ${l.trim()}`).join('\n'));
+check('site: no eval / document.write / insertAdjacentHTML', siteJs.every(([, t]) => !/\beval\(|new Function\(|document\.write|insertAdjacentHTML/.test(t)));
+check('site: no browser storage', siteJs.every(([, t]) => !/localStorage|sessionStorage|indexedDB|document\.cookie/.test(t)));
+const fetches = siteJs.flatMap(([, t]) => [...t.matchAll(/fetch\(([^,)]+)/g)].map((m) => m[1].trim()));
+check('site: fetch() only reads its own data files', fetches.length > 0 && fetches.every((a) => a === 'path'), fetches.join(', '));
+check('site: no XMLHttpRequest / WebSocket / sendBeacon', siteJs.every(([, t]) => !/XMLHttpRequest|new WebSocket|sendBeacon|EventSource/.test(t)));
+check('no raw U+2028/U+2029 characters in builder or site code (they break JS regexes)', !/[\u2028\u2029]/.test(code) && siteJs.every(([, t]) => !/[\u2028\u2029]/.test(t)));
+check('site: no setAttribute("style") (CSP-safe styling)', siteJs.every(([, t]) => !/setAttribute\(['"]style/.test(t)));
 
 // Public-repo hygiene: only synthetic content, no company names, no real-looking contact data.
-const skip = new Set(['.git', 'node_modules']);
+const skip = new Set(['.git', 'node_modules', 'test-output', 'release', 'workspace', 'tmp']); // git-ignored output folders
 const files = [];
 (function walk(d) { for (const n of readdirSync(d)) { if (skip.has(n)) continue; const p = join(d, n); statSync(p).isDirectory() ? walk(p) : files.push(p); } })(ROOT);
 const textFiles = files.filter((f) => /\.(html|md|mjs|js|json|txt|sh|css)$|\.gitignore$/.test(f) && !f.includes('check-static.mjs'));

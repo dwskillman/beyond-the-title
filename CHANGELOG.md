@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0] - 2026-11-09: Milestone 3 (employee website)
+
+### Added
+- **`site/`**: the employee-facing website. Static HTML, CSS and vanilla JS with no build step, hash routing, and CSP limited to its own files.
+  - Homepage modelled on the approved mockup: hero, Surprise me / Explore projects / Find my team, a featured story that rotates daily, People to discover with shuffle, recently added, and explore by team.
+  - Universal search across names, managers, teams, projects, tags and story text. Accent-insensitive, with ⌘K / `/` and keyboard navigation.
+  - Explore with team, manager, project and topic filters.
+  - Story pages: video with captions, "Watch this moment" (jumps to the quote), related stories.
+  - People, profiles, Teams, Projects and Managers pages.
+  - Only published stories are shown. Opened from disk, a "Preview drafts" mode shows the rest with a clear banner.
+  - Responsive, keyboard-accessible, respects reduced motion. Empty, error and loading states.
+- **Builder:** writes `data/site-data.js` on every save and in export packages (lets the site open from disk, captions included). Content is deterministic, so unchanged saves write nothing.
+- **Builder:** an Employee website card installs or updates the embedded site files into the project folder (never touching data/stories/backups), or downloads them as a zip.
+- Synthetic sample-site data and gradient thumbnails; `tests/make-site-preview.mjs`; `tests/site-e2e.mjs` (42 checks); static checks for the site; a guard against raw U+2028/2029 characters.
+
 ## [0.2.0] - 2026-11-09: Milestone 2 (video & content)
 
 ### Added

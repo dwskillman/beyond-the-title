@@ -335,6 +335,27 @@ try {
   const pj = JSON.parse(execFileSync('unzip', ['-p', zip2, 'data/stories.json']).toString());
   const ps1 = pj.stories.find((x) => x.id === 'story-0001');
   check('M2: exported record is published with media paths and duration', ps1.published === true && ps1.status === 'published' && ps1.duration === 6 && ps1.captions === 'stories/story-0001/captions.vtt', JSON.stringify(ps1));
+  // Milestone 4: release zip (published story-0001 only)
+  await p.eval('document.querySelectorAll("dialog[open]").forEach((d) => d.querySelector(".modal-foot .btn-primary").click())');
+  await p.eval('location.hash = "#/release"');
+  await p.waitFor('document.querySelector("[data-testid=release-checks]")');
+  check('M4: release checks pass with 1 published story', (await p.eval('document.querySelector("[data-testid=release-checks]").textContent')).includes('1 published story ready'));
+  await p.click('[data-testid=release-zip]');
+  await p.waitFor('[...document.querySelectorAll(".banner")].some(b => b.textContent.includes("Release ready"))', 20000);
+  const relName = await p.eval('[...document.querySelectorAll(".banner")].find(b => b.textContent.includes("Release ready")).textContent.match(/beyond-the-title-release-[^ ]+\\.zip/)[0]');
+  const relZip = await waitDownload(relName, 15000);
+  const relList = execFileSync('unzip', ['-l', relZip]).toString();
+  check('M4: release zip has the website, data and published media', ['index.html', 'js/app.js', 'css/styles.css', 'data/stories.json', 'data/site-data.js', 'stories/story-0001/video.mp4', 'stories/story-0001/thumbnail.jpg', 'stories/story-0001/captions.vtt'].every((f) => relList.includes(f)), relList);
+  check('M4: release zip leaves out drafts, transcripts and backups', !relList.includes('story-0002') && !relList.includes('transcript.txt') && !relList.includes('backups/'), relList);
+  const relDir = mkdtempSync(join(tmpdir(), 'btt-release-'));
+  execFileSync('unzip', ['-q', relZip, '-d', relDir]);
+  const relStories = JSON.parse(readFileSync(join(relDir, 'data', 'stories.json'), 'utf8'));
+  check('M4: released records hold only site fields', relStories.stories.length === 1 && !('source' in relStories.stories[0]) && !('status' in relStories.stories[0]) && !('transcript' in relStories.stories[0]));
+  const rp = await openPage(browser, null);
+  await rp.send('Page.navigate', { url: `file://${relDir}/index.html#/` });
+  await rp.waitFor('window.BTT_SITE && window.BTT_SITE.ready', 10000); await sleep(300);
+  check('M4: unzipped release opens in Chrome showing only the published story', await rp.eval('window.BTT_SITE.debug.data.stories.length') === 1 && await rp.eval('!document.querySelector("[data-testid=preview-toggle]")') && rp.errors.length === 0, rp.errors.join('\n'));
+  await rp.send('Page.close').catch(() => {});
   check('no console errors in media flow', p.errors.length === 0, p.errors.join('\n'));
   await p.send('Page.close').catch(() => {});
 
@@ -356,7 +377,7 @@ try {
   const HTTP2 = `http://127.0.0.1:${server2.address().port}/builder/builder.html`;
   try {
     p = await newPage(null);
-    await p.send('Page.addScriptToEvaluateOnNewDocument', { source: "window.showDirectoryPicker = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('proj2', { create: true });" });
+    await p.send('Page.addScriptToEvaluateOnNewDocument', { source: "window.showDirectoryPicker = async (o) => (await navigator.storage.getDirectory()).getDirectoryHandle(window.__pick || (o && o.id === 'btt-release' ? 'rel' : 'proj2'), { create: true });" });
     await p.goto(HTTP2 + '#/dashboard');
     await p.click('[data-testid=open-folder]');
     await p.waitFor('document.querySelector("[data-testid=modal-confirm]")');
@@ -415,6 +436,43 @@ try {
     check('M3: save wrote data/site-data.js with stories and caption text', !!sd && sd.stories.stories.length === 2 && Object.values(sd.captions).some((c) => c.startsWith('WEBVTT')));
     await p.click('[data-testid=save-project]'); await sleep(500);
     check('M3: site-data.js is stable (saving again writes nothing)', !(await p.eval('!!document.querySelector("[data-testid=save-plan]")')));
+    // Milestone 4: write the release to a folder; refuse the project folder; re-release removes stale files
+    await p.eval(`(async () => { const S = window.BTT.store, M = window.BTT;
+      for (const id of ['story-0001', 'story-0002']) { const s = S.get(id); Object.assign(s, { role: 'Analyst', teamId: S.ensureTeam('Learning Design'), headline: 'Headline ' + id, description: 'Description ' + id });
+        if (S.assetState(s, 'thumbnail') === 'none') { const v = await M.ProjectIO.readFile(S.dirHandle, s.video); const im = await new Promise((r) => { const c = document.createElement('canvas'); c.width = 8; c.height = 8; c.toBlob(r, 'image/jpeg'); }); s.thumbnail = 'stories/' + id + '/thumbnail.jpg'; S.media.set(id, Object.assign(S.media.get(id) || {}, { thumbnail: { blob: im, source: 'file' } })); void v; }
+        S.set(s, 'status', 'published'); } })()`);
+    await p.eval('location.hash = "#/release"');
+    await p.waitFor('document.querySelector("[data-testid=release-checks]") && document.querySelector("[data-testid=release-checks]").textContent.includes("2 published stories ready")', 10000);
+    await p.eval('window.__pick = "proj2"');
+    await p.click('[data-testid=release-write]');
+    await p.waitFor('[...document.querySelectorAll("dialog.modal h2")].some(h => h.textContent.includes("project folder"))');
+    check('M4: refuses to write a release into the project folder', true);
+    await p.eval('document.querySelector("dialog.modal .btn-primary").click(); window.__pick = null');
+    await p.eval(`(async () => { const d = await (await navigator.storage.getDirectory()).getDirectoryHandle('notempty', { create: true }); const w = await (await d.getFileHandle('keep.txt', { create: true })).createWritable(); await w.write('x'); await w.close(); })()`);
+    await p.eval('window.__pick = "notempty"');
+    await p.click('[data-testid=release-write]');
+    await p.waitFor('[...document.querySelectorAll("dialog.modal h2")].some(h => h.textContent.includes("Choose an empty folder"))');
+    check('M4: refuses a non-empty folder that isn\'t a previous release', true);
+    await p.eval('document.querySelector("dialog.modal .btn-primary").click(); window.__pick = null');
+    await p.click('[data-testid=release-write]');
+    await p.waitFor('document.querySelector("[data-testid=modal-confirm]")', 15000);
+    await p.click('[data-testid=modal-confirm]');
+    await p.waitFor('[...document.querySelectorAll(".banner")].some(b => b.textContent.includes("Release ready"))', 20000);
+    const rel = await p.eval(`(async () => { const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('rel'); const out = []; const walk = async (d, pre) => { for await (const [n, hd] of d.entries()) { if (hd.kind === 'file') out.push(pre + n); else await walk(hd, pre + n + '/'); } }; await walk(root, ''); return out.sort(); })()`);
+    check('M4: release folder has the site, data and both published stories\' media', ['index.html', 'js/app.js', 'data/stories.json', 'data/site-data.js', 'stories/story-0001/video.mp4', 'stories/story-0002/video.mp4', '.btt-release.json'].every((f) => rel.includes(f)), rel.join(', '));
+    check('M4: release folder has no transcripts or backups', !rel.some((f) => /transcript\.txt|^backups\//.test(f)), rel.join(', '));
+    // Unpublish story-0002 → re-release removes its files
+    await p.eval('window.BTT.store.set(window.BTT.store.get("story-0002"), "status", "approved")');
+    await p.eval('location.hash = "#/dashboard"'); await sleep(100); await p.eval('location.hash = "#/release"');
+    await p.waitFor('document.querySelector("[data-testid=release-checks]") && document.querySelector("[data-testid=release-checks]").textContent.includes("1 published story ready")', 10000);
+    await p.click('[data-testid=release-write]');
+    await p.waitFor('document.querySelector("[data-testid=release-stale]")', 15000);
+    check('M4: re-release lists files of the unpublished story for removal', (await p.eval('document.querySelector("[data-testid=release-stale]").textContent')).includes('stories/story-0002/video.mp4'));
+    await p.click('[data-testid=modal-confirm]');
+    await sleep(1500);
+    const rel2 = await p.eval(`(async () => { const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('rel'); const out = []; const walk = async (d, pre) => { for await (const [n, hd] of d.entries()) { if (hd.kind === 'file') out.push(pre + n); else await walk(hd, pre + n + '/'); } }; await walk(root, ''); return out.sort(); })()`);
+    const relJson = await p.eval(`(async () => { const root = await (await navigator.storage.getDirectory()).getDirectoryHandle('rel'); const d = await root.getDirectoryHandle('data'); return JSON.parse(await (await (await d.getFileHandle('stories.json')).getFile()).text()); })()`);
+    check('M4: re-release removed the unpublished story\'s files and record', !rel2.some((f) => f.includes('story-0002')) && relJson.stories.length === 1 && rel2.includes('stories/story-0001/video.mp4'), rel2.join(', '));
     check('no console errors in direct media flow', p.errors.length === 0, p.errors.join('\n'));
     await p.send('Page.close').catch(() => {});
   } finally { server2.close(); }

@@ -25,7 +25,7 @@ and reports back: the diagnostics report, the detected format, candidate quality
 
 ## M2: Content management improvements (v0.2.0)
 
-- [ ] Tune the parser and analyzer against the four real Socialive transcripts. **Waiting for a masked format sample.**
+- [x] ~~Tune the parser against the real Socialive transcripts~~. Not needed: the project owner confirmed the current parser handles their files. The Format override and masked sample tools remain if that ever changes.
 - [x] Bulk import: whole Socialive export folders (picked or dropped), transcripts and media together
 - [x] Match videos, captions and images to stories by file name (story ID, transcript name, full name). Ties are never guessed; unmatched files go to an assign list
 - [x] Video: read duration and resolution, preview with captions, jump to the quote's timestamp
@@ -47,19 +47,17 @@ and reports back: the diagnostics report, the detected format, candidate quality
 - [x] Works on any static server (hash routing) and from disk (via `data/site-data.js`); responsive; reduced motion; no popularity metrics
 - [x] The builder installs and updates the site files and writes `data/site-data.js` on save
 
-## M4: Publishing and deployment
+## M4: Release (v0.4.0)
 
-A builder "Prepare release" step will:
+- [x] **Release** page in the builder: checks, then a clean copy written to an empty folder (or a previous release folder) or downloaded as a zip
+- [x] Only published stories; only the fields the site uses; only the people and teams they mention
+- [x] No drafts, transcripts, backups, internal fields or builder; files of unpublished stories are removed when a release folder is updated
+- [x] Checks: required fields, media present, captions valid, every data path included, website files complete
+- [x] Release includes `data/site-data.js` so it can be previewed from disk before upload
+- [x] Uploading to Syndicate is handled by the project owner
 
-- validate assets
-- copy only **published** stories and their assets, leaving out drafts, transcripts if not needed, backups and the builder
-- check links, JSON paths and missing media
-- confirm there are no external resources
-- produce a release folder or zip for Syndicate
+## M5: Documentation and final testing (v0.4.0)
 
-If the browser can't do the packaging automatically, it falls back to a documented manual process.
-
-## M5: Final testing and documentation
-
-Admin guides: adding Socialive videos, importing transcripts, editing headlines, managers and teams,
-featuring stories, updating JSON, previewing the site, preparing Syndicate releases, troubleshooting browser permissions.
+- [x] [Admin guide](admin-guide.md): setup, Socialive videos, transcripts, quotes, headlines, managers and teams, featuring, publishing, saving, previewing, releases, backups, troubleshooting
+- [x] The guide is built into the builder as **Help**, for the corporate Mac where only `builder.html` is available
+- [x] Full test suite: built-in self-tests, builder E2E, website E2E, static checks

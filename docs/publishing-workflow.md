@@ -2,7 +2,7 @@
 
 **Import Socialive files → review story cards → save the project → (later) upload the finished website to Syndicate.**
 
-## Today (Milestones 1–3)
+## The workflow
 
 1. **Open** `builder/builder.html` in Chrome (drag it onto a Chrome window, or use ⌘O).
 2. **Open Project Folder** and choose your Beyond the Title project folder, or a new empty folder. The builder offers to set one up.
@@ -23,14 +23,13 @@
    Or use **Save & Export → Download update package (.zip)** and copy the files in.
 6. **Preview the website.** Once, use **Save & Export → Employee website → Install website files**. After that, open `index.html`
    in the project folder in Chrome. Only published stories show. **Preview drafts** at the bottom of the page shows the rest.
-   **Don't upload the project folder to Syndicate as it is.** It contains drafts, transcripts and backups. Wait for the release step (M4).
+7. **Release.** Open **Release**, check the list, then **Write release to a folder** (an empty folder) or **Download release (.zip)**.
+   Open `index.html` in the release to preview it, then upload the release folder's **contents** to Syndicate.
+   Never upload the project folder itself: it contains drafts, transcripts and backups.
 
-## Later milestones
+## Uploading
 
-| Step | Milestone |
-|---|---|
-| **Prepare release**: copy only published stories and their assets (no drafts, backups or builder) into a release folder or zip | M4 |
-| Upload the release folder's contents to Syndicate | M4 (see [syndicate-deployment.md](syndicate-deployment.md)) |
+Uploading to Syndicate is handled by the project owner. See [syndicate-deployment.md](syndicate-deployment.md) for what the site needs from the server.
 
 ## Rules that always apply
 

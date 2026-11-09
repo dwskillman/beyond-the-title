@@ -5,7 +5,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildBlock, buildSiteBlock, siteFiles } from './embed-fixtures.mjs';
+import { buildBlock, buildSiteBlock, buildDocsBlock, siteFiles } from './embed-fixtures.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'builder', 'builder.html'), 'utf8');
@@ -13,7 +13,8 @@ const scriptStart = html.lastIndexOf('<script>\n/* =====');
 const code = html.slice(scriptStart, html.lastIndexOf('</script>'));
 const fixtures = (html.match(/<!-- FIXTURES:BEGIN -->[\s\S]*?<!-- FIXTURES:END -->/) || [''])[0];
 const siteBlock = (html.match(/<!-- SITE:BEGIN -->[\s\S]*?<!-- SITE:END -->/) || [''])[0];
-const outsideFixtures = html.replace(fixtures, '').replace(siteBlock, '');
+const docsBlock = (html.match(/<!-- DOCS:BEGIN -->[\s\S]*?<!-- DOCS:END -->/) || [''])[0];
+const outsideFixtures = html.replace(fixtures, '').replace(siteBlock, '').replace(docsBlock, '');
 let failed = 0;
 const check = (name, ok, detail) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${ok || !detail ? '' : '\n     ' + detail}`); if (!ok) failed++; };
 
@@ -38,6 +39,7 @@ check('folder-shortcut module stores only a directory handle', !/localStorage|se
 check('no network APIs (fetch / XMLHttpRequest / WebSocket / sendBeacon)', !/\bfetch\(|XMLHttpRequest|new WebSocket|sendBeacon|EventSource/.test(code));
 check('embedded fixtures identical to /fixtures', fixtures === buildBlock(), 'run: node tests/embed-fixtures.mjs');
 check('embedded website files identical to /site', siteBlock === buildSiteBlock(), 'run: node tests/embed-fixtures.mjs');
+check('embedded admin guide identical to docs/admin-guide.md', docsBlock === buildDocsBlock(), 'run: node tests/embed-fixtures.mjs');
 
 // Employee website (site/): same rules, plus fetch() only for its own relative data files.
 const siteHtml = readFileSync(join(ROOT, 'site', 'index.html'), 'utf8');

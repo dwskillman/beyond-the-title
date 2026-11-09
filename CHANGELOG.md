@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0] - 2026-11-09: Milestones 4–5 (release and admin guide)
+
+### Added
+- **Release** page:
+  - Checks every published story (required fields, media present, captions valid) and builds a clean copy of the website.
+  - Copies only published stories, only the fields the site uses, and only the people and teams they mention. No drafts, transcripts, backups, internal fields or builder.
+  - Writes to an empty folder or updates a previous release folder (removing files of stories that are no longer published), or downloads a zip. Videos are streamed.
+  - Every written file is read back and checked; links in the data are verified.
+  - Refuses to write into the project folder or any non-empty folder that isn't a previous release.
+- **Admin guide** (`docs/admin-guide.md`), also built into the builder as **Help** with a contents list.
+- Tests: release self-tests (plan, assembly, blocking), release E2E (zip opened in Chrome; folder refusals; update removes unpublished files), and Help rendering safety.
+
+### Changed
+- Parser tuning to real Socialive files is closed: the project owner confirmed the current parser handles them.
+- Syndicate upload is handled by the project owner; the deployment doc now describes the release layout and server checklist.
+
 ## [0.3.0] - 2026-11-09: Milestone 3 (employee website)
 
 ### Added

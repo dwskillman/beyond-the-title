@@ -48,14 +48,22 @@ export function buildSiteBlock() {
   return parts.join('\n');
 }
 
+/** The admin guide, shown on the builder's Help page. */
+export function buildDocsBlock() {
+  const text = readFileSync(join(root, 'docs', 'admin-guide.md'), 'utf8');
+  if (/<\/script|<!--/i.test(text)) throw new Error('admin-guide.md contains "</script" or "<!--"');
+  return ['<!-- DOCS:BEGIN -->', `<script type="text/plain" data-doc="admin-guide.md">${text}</script>`, '<!-- DOCS:END -->'].join('\n');
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const html = readFileSync(builder, 'utf8');
   const re = /<!-- FIXTURES:BEGIN -->[\s\S]*?<!-- FIXTURES:END -->/;
   const reSite = /<!-- SITE:BEGIN -->[\s\S]*?<!-- SITE:END -->/;
-  if (!re.test(html) || !reSite.test(html)) { console.error('FIXTURES/SITE markers not found in builder.html'); process.exit(2); }
-  const next = html.replace(re, buildBlock()).replace(reSite, buildSiteBlock());
+  const reDocs = /<!-- DOCS:BEGIN -->[\s\S]*?<!-- DOCS:END -->/;
+  if (!re.test(html) || !reSite.test(html) || !reDocs.test(html)) { console.error('FIXTURES/SITE/DOCS markers not found in builder.html'); process.exit(2); }
+  const next = html.replace(re, buildBlock()).replace(reSite, buildSiteBlock()).replace(reDocs, () => buildDocsBlock());
   if (process.argv.includes('--check')) {
-    if (next !== html) { console.error('Embedded fixtures or website files are out of date. Run: node tests/embed-fixtures.mjs'); process.exit(1); }
+    if (next !== html) { console.error('Embedded fixtures, website files or admin guide are out of date. Run: node tests/embed-fixtures.mjs'); process.exit(1); }
     console.log('Embedded fixtures match /fixtures and website files match /site.');
   } else {
     writeFileSync(builder, next);

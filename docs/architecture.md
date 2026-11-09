@@ -50,6 +50,7 @@ A single file with inline CSS and JS. It has no dependencies and works from `fil
 | `ProjectIO` | Direct (File System Access) / read-only folder (`webkitdirectory`) / standalone; save, backup, verify; export |
 | `Zip` | Store-only ZIP writer and reader (CRC32) for the update package. Videos are streamed for the CRC, never copied into memory |
 | `Media` | File-name matching, video probing (`<video>` metadata), frame capture (`<canvas>` → JPEG), VTT validation and generation. Attached files are kept in memory (as `File` references) until saved or exported |
+| `Release` | Plans and assembles the published-only release (allow-listed fields, trimmed people and teams, link check), writes it to an empty or previous-release folder, or zips it |
 | `FolderMemory` | The single use of browser storage: one `FileSystemDirectoryHandle` in IndexedDB for "Reopen last project". No content |
 | `UI` | Hash router and views: Dashboard, Import, Stories, Story editor, Save & Export, Diagnostics |
 | `SelfTest` | Built-in test suite (`#selftest`, or the button on the Diagnostics page) |
@@ -118,4 +119,7 @@ Classic scripts, no build step or framework, hash routing, the same design token
 | 11 | Hash routing (`#/story/…`) | Works on any static host with no rewrite rules, and from disk |
 | 12 | `data/site-data.js` alongside the JSON | Lets the site open from disk on a locked-down Mac with no local server |
 | 13 | Builder carries the website files | One file to move to the corporate Mac; installs or updates the site with one click |
+| 14 | Release copies allow-listed fields only | Internal notes, transcript names, status and future fields can never leak by accident |
+| 15 | Releases only go into empty or previous-release folders | Prevents uploading the working project by mistake; updating a release removes files only the previous release created (`.btt-release.json`) |
+| 16 | Admin guide embedded as Help | The corporate Mac only has `builder.html` |
 | 10 | Folder shortcut stored in IndexedDB | Saves re-navigating each session. It stores only a handle, Chrome still asks for permission, and it's easy to forget |

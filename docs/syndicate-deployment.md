@@ -1,9 +1,19 @@
-# Syndicate deployment (Milestone 4: open questions)
+# Syndicate deployment
 
-The employee site will be plain static files. Syndicate only needs to serve them; no server code runs.
-The **release folder** (built in Milestone 4) is what gets uploaded. It contains published stories only, and no builder, backups or drafts.
+The employee site is plain static files. Syndicate only needs to serve them; no server code runs.
+Upload the **contents of the release folder** that the builder's **Release** page creates. It contains published stories only, and no builder, backups, transcripts or drafts.
+The upload itself is handled by the project owner. The questions below are kept as a checklist.
 
-## Questions for the Syndicate administrators
+## Release folder layout
+
+```
+index.html  css/styles.css  js/*.js
+data/stories.json  data/people.json  data/teams.json  data/site-data.js
+stories/<story-id>/video.mp4  thumbnail.jpg  captions.vtt
+.btt-release.json   (list of released files, used to update the release later; harmless if uploaded)
+```
+
+## Checklist for the server
 
 | # | Question | Why it matters |
 |---|---|---|

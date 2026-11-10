@@ -15,7 +15,7 @@
    2. **Copilot card:** copy the prompt (it names the employee and asks for a directory lookup), paste it into your approved Copilot, paste the reply back, review, and click **Apply selected**. This fills the **job title, team and manager**. Copilot quotes are checked word-for-word.
    3. Review the **Suggested statements**, which are keyword-based. Use one as the quote or headline, or highlight words in the transcript and click **Use selection as quote**.
    4. Check the filled-in **headline** and **description**, or choose others from the suggestions. Exact-quote headlines are labelled. Templates are paraphrases and are flagged when generic.
-   5. Check **name, job title, team, manager, project and tags**. Each field shows where its value came from. Watch the live card.
+   5. Check **name, job title, manager, project and tags**, and the **team** if they're on a named team (optional). Each field shows where its value came from. Watch the live card.
    6. In **Video & media**: check the video and its auto-captured thumbnail. Pause on a better frame and click **Use this frame as thumbnail** if needed.
       Attach or create captions, and use **Jump to quote** to confirm the quote's timing.
    7. Set the status to **Ready for review** or **Approved** when the checks pass, then turn on **Published** once video and thumbnail are in place.

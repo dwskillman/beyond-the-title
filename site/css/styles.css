@@ -194,7 +194,8 @@ button.chip{cursor:pointer}
 .card-flag{position:absolute;top:10px;left:10px;font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--violet-700)}
 .card-flag.draft{background:var(--warning-bg);color:var(--warning)}
 .card-body{padding:10px 15px 14px;display:flex;flex-direction:column;gap:9px}
-.card-title{font-family:var(--font-display);font-weight:700;font-size:17px;line-height:1.12;letter-spacing:-.02em;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* line-height leaves room for descenders (g, p, y) so the last line is never clipped; up to 3 lines before "…" */
+.card-title{font-family:var(--font-display);font-weight:700;font-size:15.5px;line-height:1.3;letter-spacing:-.015em;color:var(--ink);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;padding-bottom:1px}
 .card-meta{font-size:15px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.005em}
 .entity-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
 .entity{display:flex;gap:15px;align-items:center;padding:16px;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(23,20,70,.05),0 6px 20px rgba(23,20,70,.06);color:var(--ink);text-decoration:none!important;transition:transform .2s var(--ease),box-shadow .2s var(--ease)}

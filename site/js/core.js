@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   var BTT = (window.BTT_SITE = window.BTT_SITE || {});
-  BTT.VERSION = '0.5.0';
+  BTT.VERSION = '0.5.1';
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var PROPS = { value: 1, checked: 1, disabled: 1, selected: 1, hidden: 1, type: 1, tabIndex: 1, controls: 1, muted: 1, playsInline: 1 };
 

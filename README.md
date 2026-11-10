@@ -31,7 +31,7 @@ See [docs/roadmap.md](docs/roadmap.md).
    Nothing needs to be installed and nothing is downloaded from the internet.
 2. Open **Diagnostics** and run the checks to see what this browser allows.
 3. Click **Try with sample data** to explore using synthetic transcripts, or go to **Import** and drop your Socialive files: `.txt` transcripts, plus `.mp4` videos and `.vtt` captions if you have them. A whole export folder works too.
-4. Each story arrives with its name, headline, description, quote and tags filled in from the transcript. Use **Copy for Copilot** to get the job title, team and manager from your company directory, then review everything against the live card preview.
+4. Each story arrives with its name, headline, description, quote and tags filled in from the transcript. Use **Copy for Copilot** to get the job title and manager (and a named team, if any) from your company directory, then review everything against the live card preview.
 5. Click **Open Project Folder** → **Save to Project**, or use **Save & Export** to download the JSON or an update package.
 6. **Save & Export → Install website files**, then open the project folder's `index.html` to preview the site.
 7. **Release** builds the clean, published-only copy that you upload to Syndicate.

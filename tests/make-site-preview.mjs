@@ -18,7 +18,7 @@ export function siteDataJs({ stories, people, teams, captions }) {
 export function makePreview(out = join(ROOT, 'test-output', 'site-preview'), { withScriptData = true } = {}) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
-  cpSync(join(ROOT, 'site'), out, { recursive: true, filter: (p) => !p.endsWith('README.md') });
+  cpSync(join(ROOT, 'site'), out, { recursive: true, filter: (p) => !p.endsWith('README.md') && !/[\\/]site[\\/](data|stories|backups)([\\/]|$)/.test(p) });
   const src = join(ROOT, 'fixtures', 'sample-site');
   cpSync(join(src, 'data'), join(out, 'data'), { recursive: true });
   const thumbs = JSON.parse(readFileSync(join(src, 'thumbnails', 'map.json'), 'utf8'));

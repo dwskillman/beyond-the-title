@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.5.1] - 2026-11-10: fixes after testing v0.5.0
+
+### Fixed
+- **Copilot prompt kept as separate lines when pasted.**
+  - The copy now puts both plain text (with CRLF line breaks) and HTML (with `<br>` line breaks) on the clipboard, so rich-text inputs such as Copilot's keep every line.
+  - The prompt also asks for one label per line.
+  - A reply that still comes back as one paragraph is split at its labels before it's read.
+- **Video imported with its transcript attaches automatically again.**
+  - Importing one person at a time pairs their video (and captions) with their story, even when the file names differ.
+  - Name matching also tries the speaker label, the self-introduction and a unique first name, and file names that share most of their words.
+  - Ties, and leftover files in multi-person imports, are still never guessed.
+- **Website card headlines are no longer clipped.** They are 15.5px, with room for descenders and up to three lines. The builder's preview card matches.
+
+### Changed
+- **Team is optional.**
+  - Ready for review and Approved need name, job title, headline and description.
+  - Copilot is asked for a team only when the directory lists a specific named team (NOT FOUND is expected otherwise).
+  - The website hides the Team row when there's none.
+- The builder only embeds the website's own files (`index.html`, `css/`, `js/`, the font licence), even if `site/` has been used as a project folder.
+
 ## [0.5.0] - 2026-11-09: owner feedback (Copilot lookup, auto-filled fields, descriptions, site design)
 
 ### Added

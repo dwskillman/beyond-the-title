@@ -36,10 +36,12 @@ export function buildBlock() {
 }
 
 /** Website files (site/) as base64 blocks, so the builder can install them into a project folder. */
+const SITE_FILE_RE = /^(?:index\.html|LICENSE-fonts\.txt|css\/[a-z-]+\.css|js\/[a-z-]+\.js)$/;
 export function siteFiles() {
   const base = join(root, 'site'), out = [];
   (function walk(d) { for (const n of readdirSync(d).sort()) { const p = join(d, n); if (statSync(p).isDirectory()) walk(p); else if (n !== 'README.md' && !n.startsWith('.')) out.push(p.slice(base.length + 1)); } })(base);
-  return out;
+  // Only the website itself. If site/ was ever used as a project folder, its data/, stories/ and backups/ are never embedded.
+  return out.filter((rel) => SITE_FILE_RE.test(rel));
 }
 export function buildSiteBlock() {
   const parts = ['<!-- SITE:BEGIN -->'];

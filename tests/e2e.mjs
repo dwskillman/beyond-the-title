@@ -348,6 +348,35 @@ try {
   check('M2: manual assignment attaches the video to the chosen story', await p.eval(S('unmatched.length')) === 0);
   check('M2: media report lists each story', await p.eval('document.querySelectorAll("[data-testid=media-row]").length') === 2);
 
+  /* v0.5.1: one transcript + its video in one go (names differ); review without a team; Copilot copy keeps line breaks */
+  {
+    const one = join(exportDir, 'one person');
+    mkdirSync(one);
+    copyFileSync(FX('transcripts/synthetic-04-plain.txt'), join(one, 'transcript_2026-11-10.txt'));
+    copyFileSync(FX('media/synthetic-01-timestamped-speakers.mp4'), join(one, 'IMG_0420.mp4'));
+    const q = await newPage('#/import');
+    await choose(q, '[data-testid=choose-files]', [join(one, 'transcript_2026-11-10.txt'), join(one, 'IMG_0420.mp4')]);
+    await q.waitFor(S('stories.length === 1') + ' && ' + S('get("story-0001").video'), 20000);
+    check('0.5.1 a video imported with its transcript attaches automatically, even with a different name', await q.eval(S('get("story-0001").video')) === 'stories/story-0001/video.mp4' && await q.eval(S('unmatched.length')) === 0);
+    await q.goto(URL + '#/story/story-0001');
+    await q.waitFor('document.querySelector("#f-role")');
+    check('0.5.1 Team is optional in the form', !(await q.eval('document.querySelector("#f-team").closest(".field").querySelector(".req")')) && (await q.eval('document.querySelector("#f-team").closest(".field").textContent')).includes('optional'));
+    await q.type('#f-role', 'Customer Service Specialist');
+    await q.eval('(() => { const el = document.querySelector("#f-status"); el.value = "review"; el.dispatchEvent(new Event("change")); })()');
+    check('0.5.1 story with no team can move to Ready for review', await q.eval(S('get("story-0001").status')) === 'review' && !(await q.eval(S('get("story-0001").teamId'))));
+    // Capture what the Copilot dialog puts on the clipboard
+    await q.eval(`(() => { window.__clip = null; navigator.clipboard.write = async (items) => { const it = items[0]; window.__clip = {}; for (const t of it.types) window.__clip[t] = await (await it.getType(t)).text(); }; })()`);
+    await q.click('[data-testid=copilot-copy]');
+    await q.waitFor('document.querySelector("[data-testid=copilot-do-copy]")');
+    await q.eval('(() => { const a = document.querySelector("[data-testid=copilot-ack]"); if (a && !a.checked) { a.click(); } })()');
+    await q.eval('document.querySelector("[data-testid=copilot-do-copy]").click()');
+    await q.waitFor('window.__clip && window.__clip["text/html"]');
+    const clip = await q.eval('window.__clip');
+    check('0.5.1 Copilot copy puts line breaks on the clipboard as HTML and as CRLF text', /JOB TITLE: [^<]*<br>TEAM:/.test(clip['text/html']) && clip['text/plain'].includes('\r\nJOB TITLE:') && clip['text/html'].includes('Morgan Fixture'), JSON.stringify(clip).slice(0, 300));
+    check('no console errors in the single-import flow', q.errors.length === 0, q.errors.join('\n'));
+    await q.send('Page.close').catch(() => {});
+  }
+
   await p.goto(URL + '#/story/story-0001');
   await p.waitFor('document.querySelector("[data-testid=video-player]") && document.querySelector("[data-testid=video-player]").readyState >= 2', 15000);
   await p.eval('(() => { const v = document.querySelector("[data-testid=video-player]"); v.currentTime = 4; return new Promise(r => v.addEventListener("seeked", r, { once: true })); })()');

@@ -51,7 +51,7 @@ The builder also imports the older plain-list form (`[ {…}, {…} ]`) and save
 | Status | Requirements |
 |---|---|
 | Draft | `id`, `personId` and a safe `transcript` path. Everything else may be blank (shown as to-dos) |
-| Ready for review / Approved | Also `name`, `role`, `teamId`, `headline`, `description`. Quote must be verbatim if present. Missing quote, manager or tags is a warning |
+| Ready for review / Approved | Also `name`, `role`, `headline`, `description` (`teamId` is optional).  Quote must be verbatim if present. Missing quote, manager or tags is a warning |
 | Published | Also `video` and `thumbnail`, each **either verified in the project folder or attached in this session** (they are then written on save or included in the export). Missing captions is a warning. Captions that run past the end of the video are a warning |
 
 Other checks:

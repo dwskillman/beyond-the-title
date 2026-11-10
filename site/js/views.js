@@ -167,7 +167,7 @@
         typeof s.quoteStart === 'number' && s.video ? h('button', { type: 'button', class: 'btn btn-secondary btn-sm', onclick: function () { player.seek(s.quoteStart); } }, icon('play'), 'Watch this moment · ' + U.clock(s.quoteStart)) : null)) : null;
     var dl = h('dl', { class: 'kv' },
       h('dt', null, 'Role'), h('dd', null, s.role || '—'),
-      h('dt', null, 'Team'), h('dd', null, s.team ? h('a', { href: '#/team/' + encodeURIComponent(s.team.id) }, s.team.name) : '—'),
+      s.team ? [h('dt', null, 'Team'), h('dd', null, h('a', { href: '#/team/' + encodeURIComponent(s.team.id) }, s.team.name))] : null, // team is optional
       h('dt', null, 'Manager'), h('dd', null, s.manager ? h('a', { href: '#/manager/' + encodeURIComponent(s.manager.id) }, s.manager.name) : '—'),
       s.project ? [h('dt', null, 'Project'), h('dd', null, h('a', { href: '#/project/' + s.projectSlug }, s.project))] : null,
       s.duration ? [h('dt', null, 'Length'), h('dd', null, U.clock(s.duration))] : null);

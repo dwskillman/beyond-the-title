@@ -52,6 +52,8 @@ Thumbs.db
 # Transcripts: plain-text files are ignored everywhere except synthetic fixtures
 *.txt
 !fixtures/**/*.txt
+# The font licence that ships with the website (not employee content)
+!site/LICENSE-fonts.txt
 !fixtures/**/*.vtt
 # Synthetic test media only (a generated test pattern; never real recordings)
 !fixtures/media/*.mp4

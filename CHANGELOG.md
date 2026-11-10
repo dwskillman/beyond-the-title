@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.5.0] - 2026-11-09: owner feedback (Copilot lookup, auto-filled fields, descriptions, site design)
+
+### Added
+- **Copilot directory lookup:**
+  - The Copilot prompt now names the employee, using the name they say in the video, and asks Copilot to look them up in the company directory for their **job title, team and manager**, and the manager's job title.
+  - Copilot is told to write NOT FOUND rather than guess, and to explain in a directory note.
+  - The name can be corrected before copying.
+- **Copilot review:**
+  - The pasted reply is listed field by field next to the story's current values, with one **Apply selected** button.
+  - Empty and auto-filled fields are pre-selected. Typed values never are. A very different name is flagged as a possible wrong lookup.
+  - Headlines and descriptions offer a choice of Copilot's three. Quotes must be verbatim. New teams and managers are created as people records.
+- **Fields filled from the transcript on import:**
+  - Name (from "My name is …" and "Hi, I'm …" introductions or the speaker label), headline, description, quote (verbatim), tags and project.
+  - Each field shows where its value came from: *From transcript · review*, *From Copilot · verify*, *Written by hand*.
+  - The new `fieldSources` story field records this. It is never released.
+- **Description suggestions:**
+  - The employee's exact words (checked against the transcript), plus templates built from the transcript's themes and project, plus Copilot's options.
+  - **Use as description** for highlighted transcript text.
+- **Employee site matched to the reference design:**
+  - Colours and sizes measured from the image.
+  - The three-stroke line marks beside the heading, the photo stack and the featured story.
+  - White play buttons with dark triangles, flush card images, the lavender arc and sidebar waves.
+  - Icons redrawn (filled Home, two-person People, layered Teams).
+  - Bundled **Manrope** font (SIL OFL), embedded as `data:` URIs so it also works from disk.
+- Help renders tables.
+- Tests: 5 new self-tests (names, descriptions, Copilot prompt and parsing, auto-fill, review rules), 14 new builder E2E checks, 6 new website E2E checks (font over http and from disk, line marks, play buttons, icons), and font and CSP static checks.
+
+### Changed
+- The Copilot card is now the second card on each story, as three numbered steps.
+- **Apply top suggestions** is renamed **Fill empty fields from transcript**.
+- The builder's live preview cards match the new site cards.
+- The email check in `check-static.mjs` is now linear time, because embedded font data made the old pattern very slow.
+
 ## [0.4.0] - 2026-11-09: Milestones 4–5 (release and admin guide)
 
 ### Added

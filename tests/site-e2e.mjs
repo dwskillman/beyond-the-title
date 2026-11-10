@@ -35,12 +35,20 @@ const ready = 'window.BTT_SITE && window.BTT_SITE.ready';
 async function page(url, opts) { const p = await openPage(browser, null, opts); await p.send('Page.navigate', { url }); await p.waitFor(ready, 10000); await sleep(150); return p; }
 const text = (p, sel = '#view') => p.eval(`(document.querySelector(${JSON.stringify(sel)}) || {}).textContent || ''`);
 const go = async (p, hash) => { await p.eval(`location.hash = ${JSON.stringify(hash)}`); await sleep(250); };
+// The embedded Manrope faces (fonts.css, data: URIs) must all load. A copy installed on this computer would not count.
+const fontStatus = 'Promise.all([400, 600, 700, 800].map((w) => document.fonts.load(w + " 20px Manrope"))).then(() => [...document.fonts].filter((f) => f.family.replace(/"/g, "") === "Manrope").map((f) => f.weight + ":" + f.status).join(","))';
+const FONTS_OK = '400:loaded,600:loaded,700:loaded,800:loaded';
 
 try {
   /* ---------- over http (as on Syndicate) ---------- */
   let p = await page(HTTP + '#/');
   check('home loads from data/*.json over http', await p.eval('window.BTT_SITE.debug.data.source') === 'json');
   check('home: hero, featured story and people to discover', (await text(p)).includes('Discover their stories.') && await p.eval('!!document.querySelector("[data-testid=featured]")') && await p.eval('document.querySelectorAll("[data-testid=discover] [data-testid=story-card]").length') === 4);
+  check('design: embedded Manrope font loads over http (all 4 weights)', await p.eval(fontStatus) === FONTS_OK, await p.eval(fontStatus));
+  check('design: the three line marks (heading, photo stack, featured panel)', await p.eval('[...document.querySelectorAll("[data-spark]")].filter((x) => x.getBoundingClientRect().width > 0).length') === 3);
+  check('design: play buttons are white circles with dark triangles', await p.eval('[...document.querySelectorAll(".play")].every((b) => { const cs = getComputedStyle(b), ic = getComputedStyle(b.querySelector("svg")); return cs.backgroundColor === "rgb(255, 255, 255)" && cs.borderRadius === "50%" && ic.color === "rgb(14, 15, 31)"; })') && await p.eval('document.querySelectorAll(".play").length') >= 1); // how many depends on which stories are shuffled in
+  check('design: nav icons follow the reference (filled Home, two-person People, layered Teams)', await p.eval('[...document.querySelectorAll("#nav a")].slice(0, 6).map((a) => a.dataset.icon).join(",")') === 'homeFill,compass,users,layers,folder,org');
+  check('design: headings use the brand font and weights', await p.eval('(() => { const cs = getComputedStyle(document.querySelector(".hero h1")); return cs.fontFamily.startsWith("Manrope") && cs.fontWeight === "800"; })()'));
   check('only published stories are shown (8 of 9)', await p.eval('window.BTT_SITE.debug.data.stories.length') === 8);
   check('the draft never appears on the page or in data used by search', !(await p.eval('document.body.textContent')).includes('DRAFT') && await p.eval('window.BTT_SITE.search.query("Drew").length') === 0);
   await go(p, '#/explore');
@@ -103,6 +111,7 @@ try {
 
   /* ---------- opened from disk (file://) ---------- */
   p = await page(FILE + '#/');
+  check('from disk: embedded font loads (no file:// font blocking)', await p.eval(fontStatus) === FONTS_OK, await p.eval(fontStatus));
   check('from disk: loads data/site-data.js', await p.eval('window.BTT_SITE.debug.data.source') === 'script' && await p.eval('window.BTT_SITE.debug.data.stories.length') === 8);
   check('from disk: "Preview drafts" offered', (await p.eval('(document.querySelector("[data-testid=preview-toggle]") || {}).textContent || ""')).includes('Preview drafts (1)'));
   await p.click('[data-testid=preview-toggle]'); await sleep(250);

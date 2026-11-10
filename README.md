@@ -15,10 +15,11 @@ no build step, no framework and no third-party network requests.
 | Milestone | Scope | State |
 |---|---|---|
 | **M1** | Repository, architecture, **standalone Content Builder** | ✅ Delivered and tested on the corporate Mac |
-| **M2** | Video, thumbnails, captions, bulk import and matching, publishing, people & teams | ✅ Delivered (v0.2.0). Parser tuning waits for a masked Socialive sample |
+| **M2** | Video, thumbnails, captions, bulk import and matching, publishing, people & teams | ✅ Delivered (v0.2.0) |
 | **M3** | Employee-facing website (`site/`), installed by the builder, previewable from disk | ✅ Delivered (v0.3.0) |
 | **M4** | Release step: clean, published-only copy for upload (folder or zip) | ✅ Delivered (v0.4.0) |
 | **M5** | Admin guide (also built into the builder as Help) and final testing | ✅ Delivered (v0.4.0) |
+| **v0.5** | Copilot directory lookup (job title, team, manager), fields filled from the transcript, description choices, site matched to the reference design | ✅ Delivered (v0.5.0) |
 
 See [docs/roadmap.md](docs/roadmap.md).
 
@@ -30,7 +31,7 @@ See [docs/roadmap.md](docs/roadmap.md).
    Nothing needs to be installed and nothing is downloaded from the internet.
 2. Open **Diagnostics** and run the checks to see what this browser allows.
 3. Click **Try with sample data** to explore using synthetic transcripts, or go to **Import** and drop your Socialive files: `.txt` transcripts, plus `.mp4` videos and `.vtt` captions if you have them. A whole export folder works too.
-4. Review the suggested statements, pick a headline, fill in the story details, and watch the live card preview.
+4. Each story arrives with its name, headline, description, quote and tags filled in from the transcript. Use **Copy for Copilot** to get the job title, team and manager from your company directory, then review everything against the live card preview.
 5. Click **Open Project Folder** → **Save to Project**, or use **Save & Export** to download the JSON or an update package.
 6. **Save & Export → Install website files**, then open the project folder's `index.html` to preview the site.
 7. **Release** builds the clean, published-only copy that you upload to Syndicate.
@@ -56,8 +57,9 @@ docs/                  Architecture, data model, roadmap, workflow, deployment, 
 - All committed examples and tests use **synthetic** people and text.
 - The builder makes **no network requests**. Its Content-Security-Policy blocks them, and it does not store
   transcripts in browser storage.
-- The optional **Copy for Copilot** action only copies text to the clipboard when you click it.
-  You are responsible for following company information-handling policy for anything you paste elsewhere.
+- The optional **Copy for Copilot** action only copies text to the clipboard when you click it. It asks your organization's
+  Copilot to look the person up in the company directory. You are responsible for following company information-handling
+  policy for anything you paste elsewhere.
 
 ## Documentation
 

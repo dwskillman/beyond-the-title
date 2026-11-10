@@ -66,6 +66,7 @@ try {
   check('2. four .txt files selected and imported', await p.eval(S('stories.length')) === 4);
   check('2. import log lists every file', await p.eval('document.querySelectorAll("[data-testid=import-log] .list-row").length') === 4);
   check('2. UTF-16 transcript decoded', await p.eval(S('transcripts.get("story-0004").encoding')) === 'UTF-16 LE');
+  check('0.5 import log says which fields were filled from the transcript', (await p.eval('document.querySelector("[data-testid=import-log]").textContent')).includes('Filled from the transcript: name'));
   await choose(p, '[data-testid=choose-files]', [FX('transcripts/synthetic-01-timestamped-speakers.txt')]);
   await p.waitFor('document.querySelectorAll("[data-testid=import-log] .list-row").length === 5');
   check('2. duplicate import detected and skipped', await p.eval(S('stories.length')) === 4 && await p.eval('document.querySelector("[data-testid=import-log] .list-row").textContent.includes("Duplicate")'));
@@ -110,8 +111,57 @@ try {
   await p.eval('(() => { const el = document.querySelector("#f-status"); el.value = "review"; el.dispatchEvent(new Event("change")); })()');
   check('5. incomplete story is blocked from review', await p.eval(S('get("story-0002").status')) === 'draft');
 
+  /* v0.5: fields filled from the transcript, description choices, Copilot directory lookup */
+  const t3 = await p.eval(S('get("story-0003")'));
+  check('0.5 import fills name, headline, description, quote and tags from the transcript', t3.name === 'Taylor Mockname' && t3.headline && t3.description.includes('Taylor') && t3.quote && t3.tags.length > 0 && t3.fieldSources.name === 'auto', JSON.stringify(t3));
+  await p.goto(URL + '#/story/story-0003');
+  await p.waitFor('document.querySelectorAll("[data-testid=description-suggestion]").length > 0');
+  check('0.5 name shows where it came from', (await p.eval('(document.querySelector("[data-testid=name-evidence]") || {}).textContent || ""')).includes('I\'m Taylor Mockname') && (await p.eval('document.querySelector("#f-name").closest(".field").textContent')).includes('From transcript'));
+  check('0.5 description suggestions offered (exact words + templates)', await p.eval('document.querySelectorAll("[data-testid=description-suggestion]").length') >= 2 && (await p.eval('document.querySelector("[data-testid=description-suggestion]").textContent')).includes('Exact words'));
+  const pickText = await p.eval('document.querySelectorAll("[data-testid=description-suggestion] .hl-text")[1].textContent');
+  await p.eval('document.querySelectorAll("[data-testid=description-suggestion] [data-testid=use-description]")[1].click()');
+  await p.waitFor(S(`get("story-0003").description === ${JSON.stringify(pickText)}`));
+  check('0.5 "Use" sets the chosen description', await p.eval(S('get("story-0003").fieldSources.description')) === 'chosen' && await p.eval('document.querySelector("#f-description").value') === pickText);
+  // Highlight words in the transcript, then "Use as description"
+  await p.eval(`(() => { const seg = [...document.querySelectorAll("[data-testid=transcript-box] .seg-text")].find((x) => x.textContent.includes("We invited eight customers"));
+    const node = [...seg.childNodes].find((n) => n.nodeType === 3 && n.textContent.includes("We invited")) || seg.firstChild; const r = document.createRange();
+    const i = node.textContent.indexOf("We invited"); r.setStart(node, i); r.setEnd(node, node.textContent.indexOf("with us") + 7); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); })()`);
+  await p.waitFor('!document.querySelector("[data-testid=use-selection-desc]").disabled');
+  await p.eval('document.querySelector("[data-testid=use-selection-desc]").click()');
+  await p.waitFor(S('get("story-0003").description.startsWith("Taylor on ")'));
+  check('0.5 "Use as description" quotes the highlighted words', (await p.eval(S('get("story-0003").description'))).includes('“We invited eight customers who use screen readers to test every new screen with us”'), await p.eval(S('get("story-0003").description')));
+  // Copilot prompt names the employee and asks for the directory lookup
+  await p.click('[data-testid=copilot-copy]');
+  await p.waitFor('document.querySelector("[data-testid=copilot-prompt]")');
+  const prompt = await p.eval('document.querySelector("[data-testid=copilot-prompt]").value');
+  check('0.5 Copilot prompt includes the name and the directory lookup', prompt.includes('- Name: Taylor Mockname') && /company directory/i.test(prompt) && prompt.includes('JOB TITLE:') && prompt.includes('MANAGER:'), prompt.slice(0, 400));
+  await p.eval('(() => { const n = document.querySelector("[data-testid=copilot-name]"); n.value = "Taylor Q. Mockname"; n.dispatchEvent(new Event("input")); })()');
+  check('0.5 name can be corrected before copying', (await p.eval('document.querySelector("[data-testid=copilot-prompt]").value')).includes('- Name: Taylor Q. Mockname') && await p.eval(S('get("story-0003").name')) === 'Taylor Mockname');
+  await p.eval('[...document.querySelectorAll("dialog.modal button")].find((b) => b.textContent.trim() === "Cancel").click()');
+  await p.waitFor('!document.querySelector("dialog.modal[open]")');
+  // Paste a (synthetic) reply and apply it
+  const reply = ['NAME: Taylor Mockname', 'JOB TITLE: Senior Product Designer', 'TEAM: Mobile Experience', 'MANAGER: Quinn Example (Director, Digital Design)', 'DIRECTORY NOTE: NONE',
+    'HEADLINE 1: Designing with screen reader users', 'DESCRIPTION 1: Meet Taylor and hear how customers who use screen readers shaped a redesign.', 'DESCRIPTION 2: Taylor shares what changed when customers tested every screen.',
+    'QUOTE: We invited eight customers who use screen readers to test every new screen with us.', 'TAGS: Accessibility, Mobile'].join('\n');
+  await p.eval(`(() => { const t = document.querySelector("[data-testid=copilot-paste]"); t.value = ${JSON.stringify(reply)}; })()`);
+  await p.click('[data-testid=copilot-read]');
+  await p.waitFor('document.querySelector("[data-testid=copilot-apply]")');
+  const pre = await p.eval('Object.fromEntries(["role","team","manager","description","headline","tags"].map((k) => [k, !!(document.querySelector("[data-testid=cp-use-" + k + "]") || {}).checked]))');
+  check('0.5 review pre-selects empty and auto-filled fields, not the chosen description', pre.role && pre.team && pre.manager && pre.headline && pre.tags && !pre.description, JSON.stringify(pre));
+  await p.click('[data-testid=copilot-apply]');
+  await p.waitFor(S('get("story-0003").role === "Senior Product Designer"'));
+  const t3b = await p.eval(`(() => { const st = window.BTT.store, s = st.get("story-0003"); const m = st.person(s.managerId); return { team: st.teamName(s.teamId), mgr: m && m.name, mgrTitle: m && m.title, mgrIsManager: m && m.isManager, src: s.fieldSources, desc: s.description, hl: s.headline, hlSrc: s.headlineSource, tags: s.tags, title: st.person(s.personId).title }; })()`);
+  check('0.5 Copilot reply applied: job title, team, manager (with title), headline, tags', t3b.team === 'Mobile Experience' && t3b.mgr === 'Quinn Example' && t3b.mgrIsManager && t3b.mgrTitle === 'Director, Digital Design' && t3b.hl === 'Designing with screen reader users' && t3b.hlSrc === 'copilot' && t3b.tags.includes('Mobile') && t3b.title === 'Senior Product Designer' && t3b.src.role === 'copilot' && t3b.src.team === 'copilot', JSON.stringify(t3b));
+  check('0.5 the description you chose was kept', t3b.desc.startsWith('Taylor on '), t3b.desc);
+  await sleep(300);
+  check('0.5 form shows Copilot as the source of the job title', (await p.eval('document.querySelector("#f-role").closest(".field").textContent')).includes('From Copilot'), await p.eval('document.querySelector("#f-role").closest(".field").textContent'));
+  await p.eval('(() => { const el = document.querySelector("#f-status"); el.value = "review"; el.dispatchEvent(new Event("change")); })()');
+  check('0.5 story filled from transcript + Copilot can move to Ready for review', await p.eval(S('get("story-0003").status')) === 'review');
+  check('no console errors in the auto-fill and Copilot flow', p.errors.length === 0, p.errors.join('\n'));
+
   /* 8. Export valid JSON */
   await p.goto(URL + '#/export');
+  await p.eval('document.querySelectorAll("#toasts > *").forEach((t) => t.remove())'); // long notifications can cover the buttons
   await p.click('[data-testid=export-stories]');
   const file1 = await waitDownload('stories.json');
   const exp1 = JSON.parse(readFileSync(file1, 'utf8'));

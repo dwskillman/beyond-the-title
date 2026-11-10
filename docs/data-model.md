@@ -43,6 +43,7 @@ The builder also imports the older plain-list form (`[ {…}, {…} ]`) and save
 | `status` | `"draft"` \| `"review"` \| `"approved"` \| `"published"` | Editorial workflow. A missing `status` is read as `draft` (or `published` if `published` is true) |
 | `published` | boolean | **The website's only visibility switch.** Invariant: `published === (status === "published")` |
 | `source` | object | `{ transcriptFile, transcriptSha256, importedAt, speaker }`. The original file name, its SHA-256 (check with `shasum -a 256`), the import time, and the speaker treated as the employee |
+| `fieldSources` | object | Where each field's value came from, by field: `name`, `role`, `team`, `manager`, `headline`, `description`, `quote`, `tags`, `project`. Each value is `"auto"` (filled from the transcript on import), `"chosen"` (a suggestion the admin picked), `"copilot"` (applied from a Copilot reply) or `"manual"` (typed). A later Copilot reply may replace only empty, `auto` or `copilot` values. Missing for older stories, which are treated as typed. **Never released** |
 | `createdAt`, `updatedAt` | ISO string | Set by the builder |
 
 ### Validation

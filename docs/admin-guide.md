@@ -5,10 +5,11 @@ Nothing is installed, nothing goes to the internet, and nothing is stored in the
 
 ## The big picture
 
-1. **Import** Socialive files. Each transcript becomes a draft story; videos and captions are matched to stories by file name.
-2. **Review** each story: pick a quote, write the headline, fill in the details, check the video and thumbnail.
-3. **Save** to your project folder.
-4. **Release**: build a clean, published-only copy of the website, then upload it to Syndicate.
+1. **Import** Socialive files. Each transcript becomes a draft story with its **name, headline, description, quote and tags already filled in** from the transcript. Videos and captions are matched to stories by file name.
+2. **Copilot (optional)** looks the person up in the company directory and returns their **job title, team and manager**, plus more headline and description ideas.
+3. **Review** each story: check or change what was filled in, then check the video and thumbnail.
+4. **Save** to your project folder.
+5. **Release**: build a clean, published-only copy of the website, then upload it to Syndicate.
 
 Your **project folder** is your working copy. It holds everything, including drafts, transcripts and backups. **Never upload it.**
 The **release folder** is a clean copy made from it. **That's what you upload.**
@@ -41,6 +42,24 @@ The same file imported twice is detected and skipped.
 - On the story's **Transcript** card, check the detected **Format** and the **Employee speaker** (the person the story is about). Change them if they're wrong; suggestions update straight away.
 - **Original** shows the file exactly as imported. **Structured** shows tidied segments with timestamps. Words are never changed.
 
+### What's filled in for you
+
+When a transcript is imported, empty fields are filled from it straight away:
+
+| Field | Where it comes from |
+|---|---|
+| **Employee name** | Where they introduce themselves ("My name is …", "Hi, I'm …"), or the speaker label. The hint under the field shows the exact line. Check the spelling. |
+| **Quote** | The top suggested statement, word for word |
+| **Headline** | The top headline suggestion |
+| **Short description** | The top description suggestion (see below) |
+| **Tags** and **Project** | Suggested tags and the most likely project name |
+
+**Job title, team and manager** usually aren't in the transcript, so they come from Copilot's directory lookup, or you type them.
+
+- Each filled field shows a label: **From transcript · review**, **From Copilot · verify** or **Written by hand**.
+- Anything you type is never overwritten.
+- For stories imported before this version, click **Fill empty fields from transcript** at the top of the story.
+
 ## Choosing a quote
 
 - **Suggested statements** come from simple keyword rules, not AI. They are a starting point.
@@ -56,7 +75,37 @@ The same file imported twice is detected and skipped.
   - **From Copilot:** AI-assisted. Check every fact.
   - **Written by hand:** your own words.
 - Aim for **70 characters or fewer**. Cards show about two lines.
-- **Copilot (optional):** **Copy for Copilot** puts an instruction prompt and the transcript on your clipboard for your approved Copilot. Paste Copilot's reply into **Copilot assist › Read reply** and apply fields one at a time. Only paste transcripts where company policy allows.
+- Copilot can suggest three more headlines. See **Using Copilot** below.
+
+## Choosing a description
+
+The **Description suggestions** card offers:
+
+- **Exact words:** the person's own words in quotation marks, for example *Avery on teamwork: “We met every Tuesday for twelve weeks.”* The quoted part is checked against the transcript.
+- **Templates:** short invitations built from the transcript's themes and project, for example *Meet Avery from Learning Design and hear the story behind Team Hub.* They are paraphrases, so check them. *Generic* means a template could fit anyone; personalise it.
+- **From Copilot:** up to three descriptions written by Copilot, once you've pasted its reply. Check every fact.
+
+Click **Use** on the one you want, then edit it in the form if you like. To use a different passage, highlight words in the **Structured** transcript and click **Use as description**. Aim for about 240 characters or fewer.
+
+## Using Copilot: job title, team and manager
+
+The **Copilot** card at the top of each story has three steps:
+
+1. **Copy the prompt.**
+   - It includes the person's name, as they said it in the video. You can correct the name before copying.
+   - It asks Copilot to look them up in the company directory for their **job title, team and manager**.
+   - It also asks for headlines, descriptions, a quote and tags from the transcript.
+   - Paste it into your organization's approved Copilot. Only paste transcripts where company policy allows.
+2. **Paste Copilot's whole reply** and click **Read reply**.
+3. **Review and apply.** Each field is listed next to what the story has now:
+   - Fields that are empty, or were filled automatically, are ticked.
+   - Anything you typed yourself is left unticked.
+   - Pick one of Copilot's headlines and descriptions, untick anything you don't want, then click **Apply selected**.
+   - A new team or manager is added to People & Teams. A manager's job title is saved too, if Copilot gave one.
+
+Copilot is told not to guess. If it can't reach the directory, can't find the person, or finds more than one match, it writes **NOT FOUND** and explains in a directory note. Type those fields yourself.
+
+If Copilot's name is very different from the transcript's, it isn't ticked and you're warned, because Copilot may have looked up the wrong person.
 
 ## Assigning managers and teams
 
@@ -123,5 +172,7 @@ Open **Diagnostics**, run the live tests, and use **Copy diagnostics report** if
 - **Thumbnail capture fails:** use **Import image** instead.
 - **Downloads don't appear:** check Chrome › Settings › Downloads, or ask IT where downloads go.
 - **Reopen button doesn't appear:** use **Open Project Folder**. The shortcut can be forgotten after browser updates.
+- **Copilot says NOT FOUND for job title, team or manager:** your Copilot may not have access to the company directory, or the name may be spelled differently there. Check the directory yourself and type the fields.
+- **The detected name is wrong:** type the correct name. Typed values are never replaced automatically.
 - **The site opened from disk says it has no data:** **Save to Project** first, so `data/site-data.js` exists.
 - **Captions missing in a disk preview:** save again. Caption text for previews is stored in `data/site-data.js`.

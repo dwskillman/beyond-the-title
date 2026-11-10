@@ -79,7 +79,7 @@
       featured ? featuredBlock(featured) : null,
       others.length ? h('section', { class: 'section', 'aria-labelledby': 'discover-h' },
         h('div', { class: 'section-head' }, h('div', null, h('h2', { id: 'discover-h' }, 'People to discover')),
-          h('div', { class: 'row' }, others.length > 4 ? h('button', { type: 'button', class: 'btn btn-secondary btn-sm', onclick: shuffleDiscover }, icon('refresh'), 'Show me others') : null, more('View all people', '#/people'))),
+          h('div', { class: 'row', style: { gap: '14px' } }, others.length > 4 ? h('button', { type: 'button', class: 'icon-btn', title: 'Show me others', 'aria-label': 'Show me other people', 'data-testid': 'shuffle-discover', onclick: shuffleDiscover }, icon('refresh')) : null, more('View all people', '#/people'))),
         discoverGrid) : null,
       recent.length ? h('section', { class: 'section' }, sectionHead('Recently added', 'The newest stories.', more('Explore all stories', '#/explore')), grid(recent, 'grid-4')) : null,
       teamsWithStories.length ? h('section', { class: 'section' }, sectionHead('Explore by team', null, more('All teams', '#/teams')), h('div', { class: 'entity-grid' }, teamsWithStories.map(teamTile))) : null
@@ -87,11 +87,12 @@
   }
   function heroBlock(d, photos) {
     return h('section', { class: 'hero', 'aria-label': 'Welcome' },
-      h('div', null, h('h1', null, 'You know their names.', h('span', { class: 'accent' }, 'Discover their stories.')),
+      h('div', { class: 'hero-copy' }, h('h1', null, 'You know their names.', h('span', { class: 'accent' }, 'Discover their stories.'), BTT.spark()),
         h('p', null, 'Get to know the people, projects, and proud moments that make our team unique.')),
-      photos.length ? h('div', { class: 'hero-stack', 'aria-hidden': 'true' }, photos.map(function (s) {
-        return h('a', { class: 'hero-photo', href: '#/story/' + s.id, tabindex: '-1' }, s.thumbnail ? h('img', { src: s.thumbnail, alt: '' }) : h('span', { class: 'ini' }, U.initials(s.name)), s.video ? h('span', { class: 'play' }, icon('play')) : null);
-      })) : null);
+      photos.length ? h('div', { class: 'hero-stack', 'aria-hidden': 'true' }, photos.map(function (s, i) {
+        // As in the reference, the photo on top of the stack and the one to its left carry a play button.
+        return h('a', { class: 'hero-photo', href: '#/story/' + s.id, tabindex: '-1' }, s.thumbnail ? h('img', { src: s.thumbnail, alt: '' }) : h('span', { class: 'ini' }, U.initials(s.name)), s.video && i < 2 ? h('span', { class: 'play' }, icon('play')) : null);
+      }), photos.length > 2 ? BTT.spark() : null) : null);
   }
   function featuredBlock(s) {
     return h('section', { class: 'featured', 'aria-label': 'Featured story', 'data-testid': 'featured' },

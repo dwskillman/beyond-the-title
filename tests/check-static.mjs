@@ -59,6 +59,12 @@ const fetches = siteJs.flatMap(([, t]) => [...t.matchAll(/fetch\(([^,)]+)/g)].ma
 check('site: fetch() only reads its own data files', fetches.length > 0 && fetches.every((a) => a === 'path'), fetches.join(', '));
 check('site: no XMLHttpRequest / WebSocket / sendBeacon', siteJs.every(([, t]) => !/XMLHttpRequest|new WebSocket|sendBeacon|EventSource/.test(t)));
 check('no raw U+2028/U+2029 characters in builder or site code (they break JS regexes)', !/[\u2028\u2029]/.test(code) && siteJs.every(([, t]) => !/[\u2028\u2029]/.test(t)));
+const fontCss = readFileSync(join(ROOT, 'site', 'css', 'fonts.css'), 'utf8');
+const fontUrls = [...fontCss.matchAll(/url\(([^)]{0,40})/g)].map((m) => m[1]);
+check('site: fonts are embedded as data: URIs (no font files or font servers)', fontUrls.length === 4 && fontUrls.every((u) => u.startsWith('data:font/woff;base64,')) && /font-family:"Manrope"/.test(fontCss));
+check('site: CSP allows fonts only from data: URIs', /font-src data:;/.test(siteHtml) && siteHtml.includes('href="css/fonts.css"'));
+check('site: stylesheet uses no external url()', !/url\(/.test(siteCss.replace(/url\("data:[^"]*"\)/g, '')));
+check('site: font licence ships with the site', /SIL OPEN FONT LICENSE Version 1\.1/.test(readFileSync(join(ROOT, 'site', 'LICENSE-fonts.txt'), 'utf8')) && siteFiles().includes('LICENSE-fonts.txt'));
 check('site: no setAttribute("style") (CSP-safe styling)', siteJs.every(([, t]) => !/setAttribute\(['"]style/.test(t)));
 
 // Public-repo hygiene: only synthetic content, no company names, no real-looking contact data.
@@ -70,7 +76,8 @@ const hits = [];
 for (const f of textFiles) {
   const t = readFileSync(f, 'utf8');
   if (/wells\s*fargo|\bwfc\b|@wellsfargo/i.test(t)) hits.push(relative(ROOT, f) + ': company name');
-  for (const m of t.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || []) if (!/noreply@anthropic\.com|example\.(com|test)/.test(m)) hits.push(relative(ROOT, f) + ': ' + m);
+  // Anchored at the start of a run and length-bounded, so long base64 runs (embedded fonts) stay linear.
+  for (const m of t.match(/(?<![\w.+-])[\w.+-]{1,64}@[\w-]+\.[\w.]+/g) || []) if (!/noreply@anthropic\.com|example\.(com|test)/.test(m)) hits.push(relative(ROOT, f) + ': ' + m);
 }
 check('repository contains no company names or email addresses', hits.length === 0, hits.join('\n'));
 const media = files.filter((f) => /\.(mp4|mov|m4v|webm|vtt|srt|jpg|jpeg|webp)$/i.test(f) && !f.includes('/fixtures/'));

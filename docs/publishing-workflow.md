@@ -8,14 +8,14 @@
 2. **Open Project Folder** and choose your Beyond the Title project folder, or a new empty folder. The builder offers to set one up.
    If Chrome blocks folder access, choose the folder read-only (see [browser-capabilities.md](browser-capabilities.md)).
 3. **Import** Socialive files: drag and drop, Choose files, or **Import a folder** (a whole export folder). Each `.txt` transcript
-   becomes a **draft story**, and duplicates are skipped. Videos (`.mp4`), captions (`.vtt`) and images are matched to stories by file name.
+   becomes a **draft story** with its name, headline, description, quote and tags filled in from the transcript, and duplicates are skipped. Videos (`.mp4`), captions (`.vtt`) and images are matched to stories by file name.
    Anything that can't be matched for certain appears on the **Media** page for you to assign.
 4. For each story:
    1. Check the **Transcript** card. Is the detected format right? Is the employee speaker right?
-   2. Review the **Suggested statements**, which are keyword-based. Use one as the quote or headline, or highlight words in the transcript and click **Use selection as quote**.
-   3. Pick or write a **headline**. Exact-quote headlines are labelled. Template headlines are paraphrases and are flagged when generic.
-   4. *(Optional)* **Copy for Copilot**. Paste the reply back in, then apply fields one by one. Copilot quotes are checked word-for-word.
-   5. Fill in **name, job title, team, manager, project, description and tags**. Watch the live card.
+   2. **Copilot card:** copy the prompt (it names the employee and asks for a directory lookup), paste it into your approved Copilot, paste the reply back, review, and click **Apply selected**. This fills the **job title, team and manager**. Copilot quotes are checked word-for-word.
+   3. Review the **Suggested statements**, which are keyword-based. Use one as the quote or headline, or highlight words in the transcript and click **Use selection as quote**.
+   4. Check the filled-in **headline** and **description**, or choose others from the suggestions. Exact-quote headlines are labelled. Templates are paraphrases and are flagged when generic.
+   5. Check **name, job title, team, manager, project and tags**. Each field shows where its value came from. Watch the live card.
    6. In **Video & media**: check the video and its auto-captured thumbnail. Pause on a better frame and click **Use this frame as thumbnail** if needed.
       Attach or create captions, and use **Jump to quote** to confirm the quote's timing.
    7. Set the status to **Ready for review** or **Approved** when the checks pass, then turn on **Published** once video and thumbnail are in place.

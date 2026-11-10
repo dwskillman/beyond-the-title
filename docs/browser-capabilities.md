@@ -21,6 +21,10 @@ The report contains no file names, folder names or transcript text.
 
 **Not used:** the network (the page's Content-Security-Policy blocks it), browser storage for any content (only the folder shortcut is remembered), extensions, servers.
 
+**The employee website** uses only its own files, plus its font. The font is embedded in `css/fonts.css` as `data:` URIs because
+Chrome blocks separate font files on `file://` pages. Disk previews and Syndicate therefore look the same. If a browser ignores the font,
+the site falls back to the system font (SF Pro on Mac, Segoe UI on Windows) and still works.
+
 ## What happens when folder writing is blocked
 
 1. **Open Project Folder** catches the error (for example `SecurityError` or `NotAllowedError`), explains it in plain language, and offers

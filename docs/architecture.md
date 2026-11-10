@@ -94,7 +94,7 @@ one at a time, or as an **update package `.zip`** that also contains the new tra
 
 ## Employee website (`site/`)
 
-Classic scripts, no build step or framework, hash routing, the same design tokens as the builder. See [site/README.md](../site/README.md).
+Classic scripts, no build step or framework, hash routing. Colours, sizes, icons and the Manrope font follow the reference design (`docs/design/reference-home.png`). See [site/README.md](../site/README.md).
 
 - **Data:** over http(s) it reads `data/*.json` with relative `fetch()`. Opened from disk it loads `data/site-data.js` instead,
   a script-tag copy the builder writes on every save, including caption text, because browsers block `fetch()` and `<track>` on `file://`.
@@ -123,3 +123,7 @@ Classic scripts, no build step or framework, hash routing, the same design token
 | 15 | Releases only go into empty or previous-release folders | Prevents uploading the working project by mistake; updating a release removes files only the previous release created (`.btt-release.json`) |
 | 16 | Admin guide embedded as Help | The corporate Mac only has `builder.html` |
 | 10 | Folder shortcut stored in IndexedDB | Saves re-navigating each session. It stores only a handle, Chrome still asks for permission, and it's easy to forget |
+| 17 | Empty fields are filled from the transcript on import (v0.5) | The owner wanted required fields filled automatically. Only extractive values are used: the name the person says, verbatim quotes, the top suggestions. Each is labelled and recorded in `fieldSources`, and typed values are never overwritten |
+| 18 | Job title, team and manager come from Copilot's directory lookup | They are rarely in the video and must match the directory. The builder only writes the prompt (with the person's name) and reads the pasted reply. Copilot is told to write NOT FOUND rather than guess. Values are labelled "From Copilot · verify", and a very different name isn't pre-selected |
+| 19 | Site font (Manrope, SIL OFL) embedded as `data:` URIs in `css/fonts.css` | Matches the reference lettering for everyone, including Windows. Chrome blocks separate font files on `file://`, so `data:` URIs keep disk previews identical. CSP allows `font-src data:` only. The licence ships as `LICENSE-fonts.txt` |
+| 20 | Description suggestions are extractive or templated, never generated | "Exact words" quotes the transcript and is checked word for word. Templates use only detected themes, the project hint and known names, with no he/she. Free-form descriptions come from Copilot and are labelled AI-assisted |

@@ -1,11 +1,13 @@
 # site/: the employee-facing website
 
-Plain static files: `index.html`, `css/styles.css` and `js/*.js` (classic scripts, no build step, no frameworks, no CDNs).
+Plain static files: `index.html`, `css/styles.css`, `css/fonts.css` and `js/*.js` (classic scripts, no build step, no frameworks, no CDNs).
 It reads `data/stories.json`, `data/people.json` and `data/teams.json`, and shows **only stories with `"published": true`**.
 
 | File | Purpose |
 |---|---|
-| `js/core.js` | DOM helper (text-only rendering), icons, utilities |
+| `css/styles.css` | All styles. Colours and sizes were measured from the reference design (`docs/design/reference-home.png`) |
+| `css/fonts.css` | The Manrope font (SIL Open Font License, see `LICENSE-fonts.txt`), embedded as `data:` URIs so it also works from disk. Regenerate with `node tests/make-font-css.mjs` |
+| `js/core.js` | DOM helper (text-only rendering), icons, the line-mark ("spark") drawing, utilities |
 | `js/data.js` | Loads the JSON (or `data/site-data.js` when opened from disk) and builds people, team, project and manager indexes |
 | `js/search.js` | Universal search (names, managers, teams, projects, tags, story text) and the ⌘K results panel |
 | `js/video-player.js` | Native `<video>` player with poster, captions and jump-to-quote |

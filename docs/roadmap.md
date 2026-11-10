@@ -61,3 +61,15 @@ and reports back: the diagnostics report, the detected format, candidate quality
 - [x] [Admin guide](admin-guide.md): setup, Socialive videos, transcripts, quotes, headlines, managers and teams, featuring, publishing, saving, previewing, releases, backups, troubleshooting
 - [x] The guide is built into the builder as **Help**, for the corporate Mac where only `builder.html` is available
 - [x] Full test suite: built-in self-tests, builder E2E, website E2E, static checks
+
+## v0.5.0: owner feedback after M1–M5
+
+- [x] Copilot prompt names the employee (from their self-introduction) and asks Copilot to look up their job title, team and manager in the company directory. Not-found and ambiguous lookups are reported, not guessed
+- [x] Copilot replies reviewed field by field and applied in one click. Typed values are never pre-selected for replacement
+- [x] Name, headline, description, quote, tags and project filled from the transcript on import, with source labels
+- [x] Description suggestions (exact words, templates, Copilot) and **Use as description** from highlighted transcript text
+- [x] Employee site restyled to match the reference design: colours and sizes measured from the image, the line marks, play buttons, icons and the bundled Manrope font
+
+## Ideas for later
+
+- **Visitor counter** in the sidebar. A static site with no analytics can't count visits by itself, so this needs Syndicate's own statistics (server logs or a stats file the page can read) or a figure typed into the builder at release time. Deferred by the owner on 2026-11-09

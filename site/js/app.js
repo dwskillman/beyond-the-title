@@ -6,12 +6,12 @@
   var raw = null, data = null, lastSurprise = [];
   var view = document.getElementById('view');
 
-  var NAV = [['', 'Home', 'home'], ['explore', 'Explore', 'compass'], ['people', 'People', 'user'], ['teams', 'Teams', 'users'], ['projects', 'Projects', 'folder'], ['managers', 'Managers', 'org']];
+  var NAV = [['', 'Home', 'home'], ['explore', 'Explore', 'compass'], ['people', 'People', 'users'], ['teams', 'Teams', 'layers'], ['projects', 'Projects', 'folder'], ['managers', 'Managers', 'org']];
   function renderNav(section) {
     var nav = document.getElementById('nav');
     nav.replaceChildren.apply(nav, NAV.map(function (n) {
       var active = section === n[0] || (n[0] === 'explore' && section === 'story') || (n[0] === 'people' && section === 'person') || (n[0] === 'teams' && section === 'team') || (n[0] === 'projects' && section === 'project') || (n[0] === 'managers' && section === 'manager');
-      return h('a', { href: '#/' + n[0], 'aria-current': active ? 'page' : null }, icon(n[2]), h('span', null, n[1]));
+      return h('a', { href: '#/' + n[0], 'aria-current': active ? 'page' : null, 'data-icon': active && n[2] === 'home' ? 'homeFill' : n[2] }, icon(active && n[2] === 'home' ? 'homeFill' : n[2]), h('span', null, n[1]));
     }).concat([h('div', { class: 'nav-sep', role: 'separator' }), h('a', { href: '#/surprise' }, icon('shuffle'), h('span', null, 'Surprise me'))]));
     document.getElementById('sidebar-foot').replaceChildren(h('p', null, 'Short videos from colleagues about their work, their projects and what they\'re proud of.'));
   }

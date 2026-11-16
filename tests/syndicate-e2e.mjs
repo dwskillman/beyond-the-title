@@ -28,7 +28,8 @@ const server = http.createServer((req, res) => {
   const rel = url.slice(PREFIX.length) || 'index.html', file = join(OUT, rel);
   const ext = extname(rel).toLowerCase();
   if ((ext === '.html' || ext === '.mp4') && file.startsWith(OUT) && existsSync(file)) {
-    const data = readFileSync(file), type = ext === '.html' ? 'text/html; charset=utf-8' : 'video/mp4';
+    // Like the portal, pages are announced in the wrong character set: anything non-ASCII would be misread.
+    const data = readFileSync(file), type = ext === '.html' ? 'text/html; charset=windows-1252' : 'video/mp4';
     const range = req.headers.range && /bytes=(\d+)-(\d*)/.exec(req.headers.range);
     if (range) { const a = +range[1], b = range[2] ? +range[2] : data.length - 1; res.writeHead(206, { 'Content-Type': type, 'Content-Range': `bytes ${a}-${b}/${data.length}`, 'Accept-Ranges': 'bytes', 'Content-Length': b - a + 1 }); res.end(data.subarray(a, b + 1)); return; }
     res.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes' }); res.end(data); return;
@@ -78,6 +79,7 @@ try {
   const html = readFileSync(join(OUT, 'index.html'), 'utf8');
   check('index.html loads no separate stylesheet or script', !/<link rel="stylesheet"|<script src=/.test(html));
   check('index.html CSP allows only its own inline blocks (by hash) and no network', /content="default-src 'none'; script-src 'sha256-[^"]+; style-src 'sha256-[^"]+; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'none';/.test(html) && !/unsafe-inline|unsafe-eval/.test(html));
+  check('index.html is pure ASCII, so no character set can misread it', ![...readFileSync(join(OUT, 'index.html'))].some((b) => b > 127));
   check('index.html has no raw "<" inside the data', !/window\.BTT_SITE_DATA = [^\n]*<[a-z/]/i.test(html.slice(html.indexOf('window.BTT_SITE_DATA'), html.indexOf('window.BTT_SITE_DATA') + 400000).split('</script>')[0]));
   check('index.html size is reasonable', html.length < 3e6, (html.length / 1e6).toFixed(2) + ' MB');
 
@@ -87,6 +89,7 @@ try {
   await p.send('Page.navigate', { url: BASE + 'index.html?token=synthetic' });
   await p.waitFor('window.BTT_SITE && window.BTT_SITE.ready', 15000); await sleep(400);
   check('the site boots even though the server returns HTML for every other file', await p.eval('!window.BTT_SITE.loadError && window.BTT_SITE.debug.data.source === "bundled"'), await p.eval('String(window.BTT_SITE.loadError)'));
+  check('accented names and curly quotes still display correctly (served as windows-1252)', (await p.eval('document.body.textContent')).includes('Jos\u00e9') && (await p.eval('JSON.stringify(window.BTT_SITE.debug.data.stories.map((s) => s.name))')).includes('Jos\u00e9'), await p.eval('JSON.stringify(window.BTT_SITE.debug.data.stories.map((s) => s.name))'));
   check('all published stories are there', await p.eval('window.BTT_SITE.debug.data.stories.length') === r.published);
   check('styles are applied (sidebar colour, Manrope headings)', await p.eval('getComputedStyle(document.querySelector(".sidebar")).backgroundColor === "rgb(245, 243, 253)" && getComputedStyle(document.querySelector("h1")).fontFamily.startsWith("Manrope")'));
   check('the embedded Manrope font loads (all 4 weights)', await p.eval('Promise.all([400, 600, 700, 800].map((w) => document.fonts.load(w + " 20px Manrope"))).then(() => [...document.fonts].filter((f) => f.family.replace(/"/g, "") === "Manrope").every((f) => f.status === "loaded"))'));

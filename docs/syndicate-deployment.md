@@ -20,6 +20,8 @@ stories/<id>/video.mp4  one video per published story
 ```
 
 Its Content-Security-Policy allows only its own inline blocks, by SHA-256 hash, and no network access.
+The page is **pure ASCII** (every other character escaped): Syndicate reads uploaded pages in the wrong character set, which
+changed non-ASCII characters, broke the hashes and blocked most of the page (tested 2026-11-16).
 **Not yet confirmed:** whether Syndicate serves the `.mp4` files from the zip. `tools/syndicate-check.zip` (synthetic) reports
 how Syndicate serves each kind of file, video included.
 

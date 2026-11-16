@@ -3204,28 +3204,35 @@ const ShareSettings = (() => {
 const SiteBundle = (() => {
   function b64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
   const hash = async (text) => `'sha256-${b64(new Uint8Array(await crypto.subtle.digest('SHA-256', Util.utf8(text))))}'`;
+  /* Pure-ASCII output. Syndicate reads uploaded pages in the wrong character set, which changes every non-ASCII
+     character, so the inline blocks no longer match their CSP hashes (and accented names would be garbled).
+     Escaped, nothing can be misread: \uXXXX in scripts and data, \XXXXXX in styles, &#x…; in the markup. */
+  const hex = (n, w) => n.toString(16).toUpperCase().padStart(w, '0');
+  const asciiJs = (t) => t.replace(/[^\x00-\x7F]/g, (c) => '\\u' + hex(c.charCodeAt(0), 4));
+  const asciiCss = (t) => t.replace(/[^\x00-\x7F]/gu, (c) => '\\' + hex(c.codePointAt(0), 6));
+  const asciiHtml = (t) => t.replace(/[^\x00-\x7F]/gu, (c) => '&#x' + hex(c.codePointAt(0), 1) + ';');
   /** The data script, safe to put inside a script element (no "<", no line separators). */
-  const dataScript = (doc) => 'window.BTT_SITE_DATA = ' + JSON.stringify(doc).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') + ';';
+  const dataScript = (doc) => 'window.BTT_SITE_DATA = ' + asciiJs(JSON.stringify(doc)).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') + ';';
   /** html: the page's source; text(path) → a site file as text; dataJs goes in front of the first script. */
   async function page(html, text, dataJs, { connect = "'none'" } = {}) {
-    const styles = [], scripts = [dataJs], problems = [];
+    const styles = [], scripts = [dataJs = asciiJs(dataJs)], problems = [];
     let first = true;
-    let out = html.replace(/<lin[k] rel="stylesheet" href="([^"]+)">/g, (m, href) => {
+    let out = asciiHtml(html).replace(/<lin[k] rel="stylesheet" href="([^"]+)">/g, (m, href) => {
       const css = text(href); if (css === null) { problems.push(`${href} is missing`); return m; }
       if (/<\/style/i.test(css)) { problems.push(`${href} contains "</style"`); return m; }
-      styles.push(css); return '<style>' + css + '</style>';
+      const safe = asciiCss(css); styles.push(safe); return '<style>' + safe + '</style>';
     });
     out = out.replace(/<scrip[t] src="([^"]+)"><\/script>/g, (m, src) => {
-      const js = text(src); if (js === null) { problems.push(`${src} is missing`); return m; }
+      let js = text(src); if (js === null) { problems.push(`${src} is missing`); return m; }
       if (/<\/script/i.test(js)) { problems.push(`${src} contains "<\/script"`); return m; }
-      scripts.push(js); const pre = first ? '<scr' + 'ipt>' + dataJs + '<\/script>\n' : ''; first = false; return pre + '<scr' + 'ipt>' + js + '<\/script>';
+      js = asciiJs(js); scripts.push(js); const pre = first ? '<scr' + 'ipt>' + dataJs + '<\/script>\n' : ''; first = false; return pre + '<scr' + 'ipt>' + js + '<\/script>';
     });
     if (problems.length) throw new Error(problems.join('; '));
     const csp = `default-src 'none'; script-src ${(await Promise.all(scripts.map(hash))).join(' ')}; style-src ${(await Promise.all(styles.map(hash))).join(' ')}; img-src 'self' data: blob:; media-src 'self' blob:; connect-src ${connect}; font-src data:; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'`;
     if (!/<meta http-equiv="Content-Security-Policy" content="[^"]*">/.test(out)) throw new Error('The page has no Content-Security-Policy to replace.');
     return out.replace(/(<meta http-equiv="Content-Security-Policy" content=")[^"]*(">)/, (m, a, b) => a + csp + b);
   }
-  return { page, dataScript, b64, hash };
+  return { page, dataScript, b64, hash, asciiJs, asciiCss, asciiHtml };
 })();
 
 /* ==========================================================================

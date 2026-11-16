@@ -22,6 +22,9 @@
   }
   /** → raw { stories, people, teams, captions, source } */
   function load() {
+    // Single-file release (for hosts like Syndicate that serve only the page): the data is already in the page.
+    var inPage = window.BTT_SITE_DATA;
+    if (inPage && inPage.bundled === true && inPage.stories) return Promise.resolve({ stories: inPage.stories, people: inPage.people, teams: inPage.teams, captions: inPage.captions || null, images: inPage.images || null, source: 'bundled' });
     var viaFetch = location.protocol === 'file:' ? Promise.reject(new Error('file')) :
       Promise.all([getJson('data/stories.json'), getJson('data/people.json'), getJson('data/teams.json')]).then(function (r) {
         if (!r[0]) throw new Error('data/stories.json was not found');
@@ -40,6 +43,11 @@
     });
   }
 
+  /** Thumbnails built into a single-file release, as data: URIs. Only real image data is accepted. */
+  function inPageImage(raw, path) {
+    var v = raw.images && typeof path === 'string' ? raw.images[path] : null;
+    return typeof v === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/]+=*$/.test(v) ? v : null;
+  }
   function listOf(doc, key) {
     if (Array.isArray(doc)) return key === 'stories' ? doc : [];
     return doc && Array.isArray(doc[key]) ? doc[key].filter(function (x) { return x && typeof x === 'object'; }) : [];
@@ -72,7 +80,7 @@
           headline: String(s.headline || ''), isQuote: s.headlineSource === 'quote', description: String(s.description || ''),
           quote: String(s.quote || ''), quoteStart: quoteStart,
           tags: Array.isArray(s.tags) ? s.tags.filter(function (t) { return typeof t === 'string' && t.trim(); }) : [],
-          video: U.safePath(s.video), thumbnail: U.safePath(s.thumbnail), captions: U.safePath(s.captions),
+          video: U.safePath(s.video), thumbnail: inPageImage(raw, s.thumbnail) || U.safePath(s.thumbnail), captions: U.safePath(s.captions),
           duration: typeof s.duration === 'number' ? s.duration : null,
           featured: s.featured === true, published: s.published === true, createdAt: s.createdAt || s.updatedAt || ''
         };
@@ -95,7 +103,8 @@
     return {
       stories: stories, byId: byId, newestFirst: newestFirst, people: people, teams: teams, projects: projects, managers: managers,
       storytellers: Array.from(people.values()).filter(function (p) { return p.stories.length; }).sort(function (a, b) { return a.name.localeCompare(b.name); }),
-      captions: raw.captions || null, preview: !!preview, unpublished: unpublished, source: raw.source
+      captions: raw.captions || null, preview: !!preview, unpublished: unpublished, source: raw.source,
+      shareEnabled: !!(raw.stories && raw.stories.settings && raw.stories.settings.share && raw.stories.settings.share.enabled === true)
     };
   }
 

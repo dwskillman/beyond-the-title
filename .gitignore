@@ -26,6 +26,7 @@ Thumbs.db
 /tmp/
 /test-output/
 *.zip
+!tools/syndicate-check.zip
 
 # Project-folder content accidentally created inside the repo
 /data/

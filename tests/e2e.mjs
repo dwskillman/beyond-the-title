@@ -363,7 +363,8 @@ try {
     check('0.5.1 Team is optional in the form', !(await q.eval('document.querySelector("#f-team").closest(".field").querySelector(".req")')) && (await q.eval('document.querySelector("#f-team").closest(".field").textContent')).includes('optional'));
     await q.type('#f-role', 'Customer Service Specialist');
     await q.eval('(() => { const el = document.querySelector("#f-status"); el.value = "review"; el.dispatchEvent(new Event("change")); })()');
-    check('0.5.1 story with no team can move to Ready for review', await q.eval(S('get("story-0001").status')) === 'review' && !(await q.eval(S('get("story-0001").teamId'))));
+    await q.waitFor(S('get("story-0001").status === "review"'), 3000).catch(() => {});
+    check('0.5.1 story with no team can move to Ready for review', await q.eval(S('get("story-0001").status')) === 'review' && !(await q.eval(S('get("story-0001").teamId'))), await q.eval(`JSON.stringify({ s: ${S('get("story-0001").status')}, role: ${S('get("story-0001").role')}, v: ${S('validate(window.BTT.store.get("story-0001"))')}.errors, toasts: [...document.querySelectorAll('.toast')].map((t) => t.textContent) })`));
     // Capture what the Copilot dialog puts on the clipboard
     await q.eval(`(() => { window.__clip = null; navigator.clipboard.write = async (items) => { const it = items[0]; window.__clip = {}; for (const t of it.types) window.__clip[t] = await (await it.getType(t)).text(); }; })()`);
     await q.click('[data-testid=copilot-copy]');

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syndicate check · Beyond the Title</title>
+<link rel="stylesheet" href="css/check.css">
+<style>
+body{font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:24px;color:#0E1033;background:#fff}
+h1{font-size:24px;margin:0 0 4px} p{margin:0 0 12px}
+table{border-collapse:collapse;width:100%;font-size:15px;margin-top:8px}
+td,th{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#f1ecfe}
+.ok{color:#137A52;font-weight:700} .bad{color:#B42318;font-weight:700}
+code{font-size:13px;word-break:break-all}
+</style>
+</head>
+<body>
+<h1>Beyond the Title · Syndicate check</h1>
+<p>Synthetic test files only. Take a photo or screenshot of this whole page and send it back. Nothing is uploaded or stored.</p>
+<p id="css-probe">Stylesheet test: this line turns <b>green</b> if css/check.css loaded.</p>
+<p id="status">If this sentence doesn't change within a few seconds, Syndicate blocked the page's own script.</p>
+<div id="out"></div>
+<script src="js/check.js"></script>
+<script>
+(function () {
+  var out = document.getElementById('out');
+  document.getElementById('status').textContent = 'Running checks…';
+  function row(cells, head) { var tr = document.createElement('tr'); cells.forEach(function (c) { var td = document.createElement(head ? 'th' : 'td'); if (c && c.cls) { td.className = c.cls; td.textContent = c.t; } else td.textContent = c == null ? '' : String(c); tr.appendChild(td); }); return tr; }
+  function table(title, headers, rows) { var h = document.createElement('h2'); h.textContent = title; h.style.fontSize = '18px'; h.style.margin = '18px 0 0'; var t = document.createElement('table'); t.appendChild(row(headers, true)); rows.forEach(function (r) { t.appendChild(r); }); out.appendChild(h); out.appendChild(t); }
+  var yes = function (b, y, n) { return { t: b ? (y || 'yes') : (n || 'no'), cls: b ? 'ok' : 'bad' }; };
+  var q = location.search ? location.search.slice(1).split('&').map(function (p) { return decodeURIComponent(p.split('=')[0]); }) : [];
+  var inFrame = false, topReadable = false; try { inFrame = window.top !== window; topReadable = !!window.top.location.href; } catch (e) { topReadable = false; }
+  var cssOk = getComputedStyle(document.getElementById('css-probe')).color === 'rgb(19, 122, 82)';
+  table('1. The page', ['Check', 'Result'], [
+    row(['Page file name', location.pathname.split('/').pop() || '(none)']),
+    row(['Folder depth of the page (number of / in the path)', location.pathname.split('/').length - 1]),
+    row(['Query string on the page address (names only, no values)', q.length ? q.join(', ') : 'none']),
+    row(['Hash (#) on the page address', location.hash ? 'yes' : 'none']),
+    row(['Opened inside a frame (portal preview)', inFrame ? 'yes' : 'no']),
+    row(['Frame can see the portal page (not sandboxed)', inFrame ? (topReadable ? 'yes' : 'no') : 'n/a']),
+    row(['Referrer sent to this page', document.referrer ? 'yes' : 'no']),
+    row(['Secure page (https)', yes(window.isSecureContext)]),
+    row(['Stylesheet <link href="css/check.css"> applied', yes(cssOk)]),
+    row(['Script <script src="js/check.js"> ran', yes(window.SYNDICATE_CHECK_EXTERNAL_JS === true)]),
+    row(['Inline script ran', yes(true)])
+  ]);
+  var tests = [
+    ['css/check.css', 'text/css', '#css-probe'],
+    ['js/check.js', 'javascript', 'SYNDICATE_CHECK_EXTERNAL_JS'],
+    ['data/check.json', 'json', 'Syndicate check'],
+    ['media/check.vtt', 'text/vtt', 'WEBVTT'],
+    ['media/check.mp4', 'video/mp4', null],
+    ['does-not-exist.css', '(should be 404)', null]
+  ];
+  var variants = [
+    ['plain relative link', function (p) { return p; }, {}],
+    ['no referrer (as the site sends now)', function (p) { return p; }, { referrerPolicy: 'no-referrer' }],
+    ['with the page\'s query string added', function (p) { return p + location.search; }, {}]
+  ];
+  var jobs = [];
+  tests.forEach(function (t) {
+    variants.forEach(function (v) {
+      if (v[0].indexOf('query') >= 0 && !location.search) return;
+      var url = v[1](t[0]);
+      var opts = Object.assign({ cache: 'no-store', credentials: 'same-origin', redirect: 'follow' }, v[2]);
+      if (t[0].slice(-4) === '.mp4') opts.headers = { Range: 'bytes=0-1023' };
+      jobs.push(fetch(url, opts).then(function (r) {
+        return r.text().then(function (body) {
+          var type = r.headers.get('content-type') || '(none)';
+          var good = r.ok && (t[2] === null ? (t[0].slice(-4) === '.mp4' ? /video\/mp4/.test(type) : true) : body.indexOf(t[2]) >= 0);
+          if (t[0] === 'does-not-exist.css') good = r.status === 404;
+          return row([t[0], v[0], { t: r.status + (r.redirected ? ' (redirected)' : ''), cls: good ? 'ok' : 'bad' }, type, r.headers.get('content-range') || r.headers.get('accept-ranges') || '', good ? 'ok' : body.replace(/\s+/g, ' ').slice(0, 90)]);
+        });
+      }).catch(function (e) { return row([t[0], v[0], { t: 'failed', cls: 'bad' }, '', '', String(e && e.message || e)]); }));
+    });
+  });
+  Promise.all(jobs).then(function (rows) {
+    table('2. Fetching the package\'s own files', ['File', 'How', 'Status', 'Content-Type', 'Ranges', 'Body (first 90 characters, if wrong)'], rows);
+    var v = document.createElement('video'); v.muted = true; v.preload = 'metadata'; v.src = 'media/check.mp4';
+    var done = false, finish = function (ok, msg) { if (done) return; done = true; table('3. Video', ['Check', 'Result'], [row(['<video src="media/check.mp4"> plays', yes(ok, msg, msg)])]); document.getElementById('status').textContent = 'Done. Please photograph the whole page.'; };
+    v.onloadedmetadata = function () { finish(true, 'yes, ' + v.duration.toFixed(1) + ' s'); };
+    v.onerror = function () { finish(false, 'no (error ' + (v.error && v.error.code) + ')'); };
+    setTimeout(function () { finish(false, 'no (timed out)'); }, 10000);
+  });
+})();
+</script>
+</body>
+</html>

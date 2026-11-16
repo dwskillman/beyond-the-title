@@ -57,6 +57,8 @@ svg.i{width:18px;height:18px;flex:none}
 .nav a[aria-current=page] svg{color:#8C22F2}
 .nav a svg{width:23px;height:23px;stroke-width:1.9}
 .nav-sep{height:1px;background:#E3E1F4;margin:9px 26px 12px 27px}
+.nav a.nav-share{margin-top:6px;color:var(--violet-600);background:rgba(255,255,255,.7);border:1px solid var(--violet-150)}
+.nav a.nav-share:hover{background:#fff}
 .sidebar-foot{margin-top:auto;font-size:12.5px;line-height:1.45;color:var(--ink-3);display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.7);border-radius:14px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .main{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--surface);overflow-x:clip;isolation:isolate}
 .topbar{position:sticky;top:0;z-index:40;display:flex;justify-content:center;padding:13px 28px 12px;background:rgba(252,251,255,.82);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px)}

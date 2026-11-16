@@ -4,7 +4,28 @@ The employee site is plain static files. Syndicate only needs to serve them; no 
 Upload the **contents of the release folder** that the builder's **Release** page creates. It contains published stories only, and no builder, backups, transcripts or drafts.
 The upload itself is handled by the project owner. The questions below are kept as a checklist.
 
-## Release folder layout
+## Syndicate serves only the page itself
+
+Syndicate is a document portal (Xyleme Syndicate). A multi-file HTML document is uploaded as a zip with `index.html` at the
+top level, and Syndicate serves the page from an address like `…/api/dynamic/documentVersions/<n>/files/index.html`.
+Tested on 2026-11-16: requests for the zip's stylesheets and scripts come back as Syndicate's own HTML page
+("MIME type ('text/html') is not a supported stylesheet MIME type"), so a normal multi-file release shows unstyled and does nothing.
+
+**Use the single-file release** (Release › **Single-file website (for Syndicate)**). It contains:
+
+```
+index.html              the whole site: styles, font, scripts, story data, thumbnails (data: URIs), captions
+LICENSE-fonts.txt       the font licence
+stories/<id>/video.mp4  one video per published story
+```
+
+Its Content-Security-Policy allows only its own inline blocks, by SHA-256 hash, and no network access.
+**Not yet confirmed:** whether Syndicate serves the `.mp4` files from the zip. `tools/syndicate-check.zip` (synthetic) reports
+how Syndicate serves each kind of file, video included.
+
+Syndicate can't receive uploads from a page, so the share page's direct sending (v0.6) won't work there as it stands.
+
+## Release folder layout (standard, for an ordinary web server)
 
 ```
 index.html  css/styles.css  js/*.js

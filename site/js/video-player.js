@@ -9,11 +9,12 @@
       caption text in site-data.js and it is played from an in-memory URL instead. */
   function captionsSrc(story, data) {
     if (!story.captions) return null;
-    if (location.protocol === 'file:' && data.captions && typeof data.captions[story.captions] === 'string') {
+    // From disk, or in a single-file release, the caption text is in the page itself.
+    if ((location.protocol === 'file:' || data.source === 'bundled') && data.captions && typeof data.captions[story.captions] === 'string') {
       if (!blobUrls.has(story.captions)) blobUrls.set(story.captions, URL.createObjectURL(new Blob([data.captions[story.captions]], { type: 'text/vtt' })));
       return blobUrls.get(story.captions);
     }
-    return location.protocol === 'file:' ? null : story.captions;
+    return location.protocol === 'file:' || data.source === 'bundled' ? null : story.captions;
   }
 
   function create(story, data) {

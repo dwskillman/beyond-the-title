@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] - in progress (pushed for testing on 2026-11-16)
+
+### Added
+- **Single-file release for Syndicate** (Release › *Single-file website (for Syndicate)*): `index.html` holds the styles, font, scripts, story data, thumbnails and captions; only videos stay separate. Syndicate answers requests for an uploaded zip's stylesheets and scripts with its own HTML page, so a multi-file release showed unstyled. The page's CSP allows only its own inline blocks, by hash. Tested against a stand-in server that behaves like Syndicate (`tests/syndicate-e2e.mjs`).
+- `tools/syndicate-check.zip`: a synthetic check package that reports how Syndicate serves stylesheets, scripts, JSON, captions and video.
+- **Share your story** page (`share.html`, off by default): employees record or upload a video, check the words transcribed on their own computer (Chrome's on-device speech recognition only, never cloud recognition), add their details, pick a headline, description and quote from suggestions, and send it. The builder imports what arrives (**Import › Employee submissions**), checking every file's checksum. Direct sending needs a server that accepts uploads, which Syndicate doesn't; the route will be revisited.
+- The builder's text tools are shared with the site as `site/js/story-kit.js`, generated from marked regions of `builder.html`.
+- The builder accepts `.webm` videos and browser recordings whose length reads as unknown.
+- Tests: `tests/share-e2e.mjs`, `tests/syndicate-e2e.mjs`, `tests/speech-check.mjs` (real on-device speech, optional), `tests/mock-syndicate.mjs`; self-tests for submissions, zips and share settings. `tests/run-selftest.sh` now runs the self-tests through DevTools.
+
 ## [0.5.1] - 2026-11-10: fixes after testing v0.5.0
 
 ### Fixed

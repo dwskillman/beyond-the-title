@@ -7,9 +7,9 @@ import { join } from 'node:path';
 
 export const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
-export async function launch({ headless = true } = {}) {
+export async function launch({ headless = true, args: extra = [] } = {}) {
   const profile = mkdtempSync(join(tmpdir(), 'btt-cdp-'));
-  const args = ['--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--window-size=1440,1000', 'about:blank'];
+  const args = ['--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--window-size=1440,1000', ...extra, 'about:blank'];
   if (headless) args.unshift('--headless=new');
   const proc = spawn(CHROME, args, { stdio: ['ignore', 'ignore', 'pipe'] });
   const wsUrl = await new Promise((resolve, reject) => {

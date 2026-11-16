@@ -12,7 +12,9 @@
     nav.replaceChildren.apply(nav, NAV.map(function (n) {
       var active = section === n[0] || (n[0] === 'explore' && section === 'story') || (n[0] === 'people' && section === 'person') || (n[0] === 'teams' && section === 'team') || (n[0] === 'projects' && section === 'project') || (n[0] === 'managers' && section === 'manager');
       return h('a', { href: '#/' + n[0], 'aria-current': active ? 'page' : null, 'data-icon': active && n[2] === 'home' ? 'homeFill' : n[2] }, icon(active && n[2] === 'home' ? 'homeFill' : n[2]), h('span', null, n[1]));
-    }).concat([h('div', { class: 'nav-sep', role: 'separator' }), h('a', { href: '#/surprise' }, icon('shuffle'), h('span', null, 'Surprise me'))]));
+    }).concat([h('div', { class: 'nav-sep', role: 'separator' }), h('a', { href: '#/surprise' }, icon('shuffle'), h('span', null, 'Surprise me')),
+      // Only when the site owner has switched on employee submissions (Content Builder › Release).
+      data && data.shareEnabled ? h('a', { href: 'share.html', class: 'nav-share', 'data-testid': 'nav-share' }, icon('video'), h('span', null, 'Share your story')) : null].filter(Boolean)));
     document.getElementById('sidebar-foot').replaceChildren(h('p', null, 'Short videos from colleagues about their work, their projects and what they\'re proud of.'));
   }
   function renderFooter() {

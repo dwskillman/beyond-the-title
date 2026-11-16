@@ -133,6 +133,18 @@ try {
   p = await page(`file://${EMPTY}/index.html#/`);
   check('no published stories: friendly empty state', (await text(p)).includes('Stories are on their way'));
   await p.send('Page.close');
+
+  /* ---------- "Share your story" link: only when switched on in the builder ---------- */
+  p = await page(HTTP + '#/');
+  check('share link hidden while employee submissions are off', !(await p.eval('!!document.querySelector("[data-testid=nav-share]")')));
+  await p.send('Page.close');
+  const docPath = join(DIR, 'data', 'stories.json'), original = readFileSync(docPath, 'utf8');
+  const doc = JSON.parse(original); doc.settings = { share: { enabled: true } };
+  writeFileSync(docPath, JSON.stringify(doc));
+  p = await page(HTTP + '#/');
+  check('share link shown in the sidebar when switched on, pointing at share.html', await p.eval('(document.querySelector("[data-testid=nav-share]") || {}).getAttribute && document.querySelector("[data-testid=nav-share]").getAttribute("href")') === 'share.html' && (await p.eval('document.querySelector("[data-testid=nav-share]").textContent')) === 'Share your story');
+  await p.send('Page.close');
+  writeFileSync(docPath, original);
 } catch (e) {
   check('site E2E completed without exceptions', false, e.stack || String(e));
 } finally {

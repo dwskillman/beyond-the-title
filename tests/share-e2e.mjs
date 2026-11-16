@@ -10,7 +10,7 @@
 import { launch, openPage, sleep } from './cdp.mjs';
 import { startMock } from './mock-syndicate.mjs';
 import { makePreview } from './make-site-preview.mjs';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, existsSync, copyFileSync, rmSync, cpSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, existsSync, copyFileSync, rmSync, cpSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -95,7 +95,17 @@ const setVal = (p, sel, v, i = 0) => p.eval(`(() => { const el = document.queryS
 async function choose(p, selector, files) { p.nextFiles = files; p.chooserDone = false; await p.click(selector); const t0 = Date.now(); while (!p.chooserDone && Date.now() - t0 < 8000) await sleep(50); }
 async function waitDownload(before, ms = 15000) {
   const t0 = Date.now();
-  while (Date.now() - t0 < ms) { const now = readdirSync(DL).filter((f) => !before.includes(f) && !f.endsWith('.crdownload')); if (now.length) { await sleep(200); return join(DL, now[0]); } await sleep(100); }
+  // Wait until a new file exists and its size has stopped changing (Chrome may still be renaming or writing it).
+  while (Date.now() - t0 < ms) {
+    const now = readdirSync(DL).filter((f) => !before.includes(f) && !f.endsWith('.crdownload'));
+    if (now.length) {
+      const f = join(DL, now[0]), size = () => { try { return statSync(f).size; } catch { return -1; } };
+      const a = size(); await sleep(400); const b = size();
+      if (a > 0 && a === b) return f;
+      continue;
+    }
+    await sleep(100);
+  }
   return null;
 }
 const sha = (buf) => createHash('sha256').update(buf).digest('hex');

@@ -100,7 +100,13 @@ try {
   const v = await p.eval(`new Promise((res) => { const v = document.querySelector('[data-testid=player] video'); if (!v) return res({ none: true }); const t = setTimeout(() => res({ timeout: true, src: v.currentSrc }), 8000); const go = () => { clearTimeout(t); res({ dur: v.duration, track: (v.querySelector('track') || {}).src || '' }); }; v.readyState >= 1 ? go() : v.addEventListener('loadedmetadata', go); v.load(); })`);
   check('story video plays from its separate file, captions come from the page', v.dur > 5 && String(v.track).startsWith('blob:'), JSON.stringify(v));
   check('no CSP violations on the story page', (await p.eval('window.__csp')).length === 0, (await p.eval('window.__csp')).join('\n'));
-  check('no console errors', p.errors.length === 0, p.errors.join('\n'));
+  // A video the host can't serve (here: the portal answers with its HTML page) shows a clear message with the reason.
+  const { rmSync } = await import('node:fs'); rmSync(join(OUT, 'stories', 'story-0002', 'video.mp4'));
+  await p.eval('location.hash = "#/story/story-0002"'); await sleep(400);
+  await p.eval('document.querySelector(".player-cover") && document.querySelector(".player-cover").click()');
+  await p.waitFor('document.querySelector("[data-testid=player-error]")', 8000).catch(() => {});
+  check('a video that can\'t be played shows a message with the browser\'s reason', (await p.eval('(document.querySelector("[data-testid=player-error]") || {}).textContent || ""')).includes('couldn\'t be played'), await p.eval('document.querySelector("[data-testid=player]").textContent'));
+  check('no console errors', p.errors.filter((e) => !/video|media/i.test(e)).length === 0, p.errors.join('\n'));
   await p.send('Page.close');
 
   /* ---------- 3. with "Share your story" switched on ---------- */

@@ -239,6 +239,8 @@ button.chip{cursor:pointer}
 .player-cover .big-play{position:relative;width:76px;height:76px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:transform .2s var(--ease)}
 .player-cover:hover .big-play{transform:scale(1.06)}
 .player-cover .big-play svg{width:27px;height:27px;margin-left:5px;color:#0E0F1F}
+.player-error{position:absolute;inset:0;display:grid;place-content:center;gap:6px;text-align:center;padding:20px;color:#fff;background:rgba(18,15,36,.92)}
+.player-error .small{color:#D6CCFB;max-width:560px;overflow-wrap:anywhere}
 .player-empty{display:grid;place-items:center;height:100%;color:#D6CCFB;text-align:center;padding:20px;background:linear-gradient(135deg,#2A1D5C,#4A2B9A)}
 .story h1{font-size:clamp(26px,2.5vw,36px);line-height:1.12;letter-spacing:-.03em;font-weight:800;margin:22px 0 14px}
 .story .desc{font-size:17.5px;color:var(--ink-2)}

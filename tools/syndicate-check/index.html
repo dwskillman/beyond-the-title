@@ -16,7 +16,7 @@ code{font-size:13px;word-break:break-all}
 </style>
 </head>
 <body>
-<h1>Beyond the Title · Syndicate check</h1>
+<h1>Beyond the Title - Syndicate check</h1>
 <p>Synthetic test files only. Take a photo or screenshot of this whole page and send it back. Nothing is uploaded or stored.</p>
 <p id="css-probe">Stylesheet test: this line turns <b>green</b> if css/check.css loaded.</p>
 <p id="status">If this sentence doesn't change within a few seconds, Syndicate blocked the page's own script.</p>
@@ -75,12 +75,26 @@ code{font-size:13px;word-break:break-all}
       }).catch(function (e) { return row([t[0], v[0], { t: 'failed', cls: 'bad' }, '', '', String(e && e.message || e)]); }));
     });
   });
+  // The video exactly as Syndicate sends it, compared with the original (size, MP4 signature, SHA-256).
+  var EXPECT = { size: __EXPECT_SIZE__, sha: '__EXPECT_SHA__' };
+  jobs.push(fetch('media/check.mp4', { cache: 'no-store', credentials: 'same-origin' }).then(function (r) {
+    var type = r.headers.get('content-type') || '(none)', enc = r.headers.get('content-encoding') || 'none';
+    return r.arrayBuffer().then(function (buf) {
+      var b = new Uint8Array(buf), sig = String.fromCharCode.apply(null, b.subarray(4, 8));
+      return (crypto.subtle ? crypto.subtle.digest('SHA-256', buf) : Promise.resolve(null)).then(function (d) {
+        var sha = d ? Array.from(new Uint8Array(d), function (x) { return x.toString(16).padStart(2, '0'); }).join('') : '(no crypto)';
+        var good = r.ok && b.length === EXPECT.size && sha === EXPECT.sha;
+        return row(['media/check.mp4', 'whole file, compared with the original', { t: r.status, cls: r.ok ? 'ok' : 'bad' }, type + ' · encoding: ' + enc, 'size ' + b.length + ' (expected ' + EXPECT.size + ')',
+          { t: good ? 'identical to the original' : 'DIFFERENT: starts "' + sig.replace(/[^ -~]/g, '?') + '" (an MP4 has "ftyp"); checksum ' + (sha === EXPECT.sha ? 'matches' : 'differs'), cls: good ? 'ok' : 'bad' }]);
+      });
+    });
+  }).catch(function (e) { return row(['media/check.mp4', 'whole file', { t: 'failed', cls: 'bad' }, '', '', String(e && e.message || e)]); }));
   Promise.all(jobs).then(function (rows) {
-    table('2. Fetching the package\'s own files', ['File', 'How', 'Status', 'Content-Type', 'Ranges', 'Body (first 90 characters, if wrong)'], rows);
+    table('2. Fetching the package\'s own files', ['File', 'How', 'Status', 'Content-Type', 'Ranges / size', 'Body (first 90 characters, if wrong)'], rows);
     var v = document.createElement('video'); v.muted = true; v.preload = 'metadata'; v.src = 'media/check.mp4';
     var done = false, finish = function (ok, msg) { if (done) return; done = true; table('3. Video', ['Check', 'Result'], [row(['<video src="media/check.mp4"> plays', yes(ok, msg, msg)])]); document.getElementById('status').textContent = 'Done. Please photograph the whole page.'; };
     v.onloadedmetadata = function () { finish(true, 'yes, ' + v.duration.toFixed(1) + ' s'); };
-    v.onerror = function () { finish(false, 'no (error ' + (v.error && v.error.code) + ')'); };
+    v.onerror = function () { finish(false, 'no (error ' + (v.error && v.error.code) + (v.error && v.error.message ? ': ' + v.error.message : '') + ')'); };
     setTimeout(function () { finish(false, 'no (timed out)'); }, 10000);
   });
 })();

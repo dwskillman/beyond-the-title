@@ -358,10 +358,19 @@ try {
     await choose(q, '[data-testid=choose-files]', [join(one, 'transcript_2026-11-10.txt'), join(one, 'IMG_0420.mp4')]);
     await q.waitFor(S('stories.length === 1') + ' && ' + S('get("story-0001").video'), 20000);
     check('0.5.1 a video imported with its transcript attaches automatically, even with a different name', await q.eval(S('get("story-0001").video')) === 'stories/story-0001/video.mp4' && await q.eval(S('unmatched.length')) === 0);
+    await q.waitFor('location.hash === "#/media"', 10000).catch(() => {}); // the import finishes by opening the Media page
     await q.goto(URL + '#/story/story-0001');
     await q.waitFor('document.querySelector("#f-role")');
     check('0.5.1 Team is optional in the form', !(await q.eval('document.querySelector("#f-team").closest(".field").querySelector(".req")')) && (await q.eval('document.querySelector("#f-team").closest(".field").textContent')).includes('optional'));
-    await q.type('#f-role', 'Customer Service Specialist');
+    // The editor can re-render once the video's thumbnail is ready: wait for it, and type again until the job title is stored.
+    await q.waitFor(S('media.get("story-0001") && window.BTT.store.media.get("story-0001").thumbnail'), 15000).catch(() => {});
+    await sleep(500);
+    for (let i = 0; i < 5 && await q.eval(S('get("story-0001").role')) !== 'Customer Service Specialist'; i++) {
+      await q.waitFor('document.querySelector("#f-role")');
+      await q.type('#f-role', 'Customer Service Specialist');
+      await q.eval('(() => { const el = document.querySelector("#f-role"); if (el) { el.dispatchEvent(new Event("change", { bubbles: true })); el.blur(); } })()');
+      await sleep(300);
+    }
     await q.eval('(() => { const el = document.querySelector("#f-status"); el.value = "review"; el.dispatchEvent(new Event("change")); })()');
     await q.waitFor(S('get("story-0001").status === "review"'), 3000).catch(() => {});
     check('0.5.1 story with no team can move to Ready for review', await q.eval(S('get("story-0001").status')) === 'review' && !(await q.eval(S('get("story-0001").teamId'))), await q.eval(`JSON.stringify({ s: ${S('get("story-0001").status')}, role: ${S('get("story-0001").role')}, v: ${S('validate(window.BTT.store.get("story-0001"))')}.errors, toasts: [...document.querySelectorAll('.toast')].map((t) => t.textContent) })`));

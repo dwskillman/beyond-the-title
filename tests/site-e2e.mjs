@@ -75,7 +75,7 @@ try {
   // Story page + player
   await go(p, '#/story/story-0001');
   check('story page: headline, description, quote and related stories', (await text(p)).includes('“The project I\'m most proud of is Team Hub”') && (await text(p)).includes('Related stories'));
-  check('player has the video and a captions track', await p.eval('document.querySelector("[data-testid=player] video source").getAttribute("src")') === 'stories/story-0001/video.mp4' && await p.eval('document.querySelector("[data-testid=player] track").getAttribute("src")') === 'stories/story-0001/captions.vtt');
+  check('player has the video and a captions track', await p.eval('document.querySelector("[data-testid=player] video").getAttribute("src")') === 'stories/story-0001/video.mp4' && await p.eval('document.querySelector("[data-testid=player] track").getAttribute("src")') === 'stories/story-0001/captions.vtt');
   await p.eval('[...document.querySelectorAll("button")].find(b => b.textContent.includes("Watch this moment")).click()');
   await p.waitFor('document.querySelector("video").currentTime >= 3.5', 8000);
   check('"Watch this moment" jumps to the quote', true);

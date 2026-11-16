@@ -25,7 +25,8 @@
     }
     var video = h('video', { controls: true, preload: 'metadata', playsInline: true, 'aria-label': 'Video: ' + (story.headline || story.name) });
     if (story.thumbnail) video.setAttribute('poster', story.thumbnail);
-    video.append(h('source', { src: story.video, type: /\.mov$/i.test(story.video) ? 'video/quicktime' : 'video/mp4' }));
+    video.src = story.video; // set directly (not <source>) so a failure is reported on the video, with Chrome's reason
+
     var cap = captionsSrc(story, data);
     if (cap) video.append(h('track', { kind: 'captions', src: cap, srclang: 'en', label: 'English', default: true }));
     var cover = h('button', { type: 'button', class: 'player-cover', 'aria-label': 'Play video: ' + (story.headline || story.name) },
@@ -33,6 +34,14 @@
     function start() { cover.remove(); var p = video.play(); if (p && p.catch) p.catch(function () {}); video.focus(); }
     cover.addEventListener('click', start);
     video.addEventListener('play', function () { if (cover.isConnected) cover.remove(); });
+    // If the video can't be played, say so on the page, with the browser's own reason (helps diagnose hosting problems).
+    video.addEventListener('error', function () {
+      var e = video.error, codes = { 1: 'stopped', 2: 'network problem', 3: 'the file couldn\'t be decoded', 4: 'the file isn\'t a playable video, or wasn\'t found' };
+      if (cover.isConnected) cover.remove();
+      var old = wrap.querySelector('.player-error'); if (old) old.remove();
+      wrap.append(h('div', { class: 'player-error', role: 'alert', 'data-testid': 'player-error' }, h('b', null, 'This video couldn\'t be played here.'),
+        h('div', { class: 'small' }, (e ? (codes[e.code] || 'error ' + e.code) + (e.message ? ' (' + e.message + ')' : '') : 'unknown error'))));
+    });
     wrap.append(video, cover);
     return {
       el: wrap, video: video,

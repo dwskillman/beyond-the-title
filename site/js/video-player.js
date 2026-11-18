@@ -5,12 +5,12 @@
   var BTT = window.BTT_SITE, h = BTT.h, icon = BTT.icon, U = BTT.util;
   var blobUrls = new Map();
 
-  /** Opened from disk, browsers refuse <track> files from file:// URLs, so the builder includes the
-      caption text in site-data.js and it is played from an in-memory URL instead. */
+  /** Browsers refuse <track> files from file:// URLs and from other servers (Syndicate sends files from its
+      file server), so the builder includes the caption text in site-data.js (or in a single-file page) and
+      it is played from an in-memory URL instead whenever that copy is there. */
   function captionsSrc(story, data) {
     if (!story.captions) return null;
-    // From disk, or in a single-file release, the caption text is in the page itself.
-    if ((location.protocol === 'file:' || data.source === 'bundled') && data.captions && typeof data.captions[story.captions] === 'string') {
+    if (data.captions && typeof data.captions[story.captions] === 'string') {
       if (!blobUrls.has(story.captions)) blobUrls.set(story.captions, URL.createObjectURL(new Blob([data.captions[story.captions]], { type: 'text/vtt' })));
       return blobUrls.get(story.captions);
     }

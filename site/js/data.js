@@ -28,7 +28,13 @@
     var viaFetch = location.protocol === 'file:' ? Promise.reject(new Error('file')) :
       Promise.all([getJson('data/stories.json'), getJson('data/people.json'), getJson('data/teams.json')]).then(function (r) {
         if (!r[0]) throw new Error('data/stories.json was not found');
-        return { stories: r[0], people: r[1], teams: r[2], captions: null, source: 'json' };
+        var out = { stories: r[0], people: r[1], teams: r[2], captions: null, source: 'json' };
+        // Hosts like Syndicate send caption files from another server, and browsers refuse captions from
+        // another server. A release keeps a copy of its (published) caption text in data/captions.js: use it.
+        if (!r[0] || r[0].captionsCopy !== 'data/captions.js') return out;
+        return loadScript('data/captions.js').then(function () {
+          var c = window.BTT_SITE_CAPTIONS; if (c && typeof c === 'object') out.captions = c; return out;
+        }, function () { return out; });
       });
     return viaFetch.catch(function (err) {
       return loadScript('data/site-data.js').then(function () {

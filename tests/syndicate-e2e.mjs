@@ -4,6 +4,9 @@
 // requests for its stylesheets and scripts with its own HTML page ("MIME type text/html"). This server does the
 // same: only .html pages and .mp4 videos are served; everything else gets an HTML page with status 200.
 // The release is built by the real builder (Release.assemble) from the synthetic sample site.
+// Part 4 is the layout seen on Syndicate once a normal release was uploaded the right way: pages, styles,
+// scripts and data come from the portal, but images, videos and captions are redirected to a separate file
+// server (another origin). The site's Content-Security-Policy allows images and videos from any https server.
 //   node tests/syndicate-e2e.mjs
 import { launch, openPage, sleep } from './cdp.mjs';
 import { makePreview } from './make-site-preview.mjs';
@@ -56,11 +59,11 @@ try {
   }
   const storiesJson = JSON.stringify(doc);
   const bp = await openPage(browser, `file://${join(ROOT, 'builder', 'builder.html')}#/dashboard`);
-  const build = (share) => bp.eval(`(async () => {
+  const build = (share, release = { singleFile: true }) => bp.eval(`(async () => {
     const B = window.BTT, st = B.makeStore(), files = ${JSON.stringify(files)};
     st.load({ stories: st.parseJson(${JSON.stringify(storiesJson)}, 'stories'), people: st.parseJson(${JSON.stringify(json('people'))}, 'people'), teams: st.parseJson(${JSON.stringify(json('teams'))}, 'teams') });
     st.assetIndex = new Set(Object.keys(files));
-    st.setSettings('release', { singleFile: true });
+    st.setSettings('release', ${JSON.stringify(release)});
     if (${share}) st.setSettings('share', { enabled: true, uploadUrl: 'submissions/', consentText: 'Synthetic consent.' });
     const bin = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
     const p = B.Release.plan(st);
@@ -78,7 +81,7 @@ try {
   for (const f of r.files) { mkdirSync(dirname(join(OUT, f.path)), { recursive: true }); writeFileSync(join(OUT, f.path), Buffer.from(f.b64, 'base64')); }
   const html = readFileSync(join(OUT, 'index.html'), 'utf8');
   check('index.html loads no separate stylesheet or script', !/<link rel="stylesheet"|<script src=/.test(html));
-  check('index.html CSP allows only its own inline blocks (by hash) and no network', /content="default-src 'none'; script-src 'sha256-[^"]+; style-src 'sha256-[^"]+; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'none';/.test(html) && !/unsafe-inline|unsafe-eval/.test(html));
+  check('index.html CSP allows only its own inline blocks (by hash) and no network', /content="default-src 'none'; script-src 'sha256-[^"]+; style-src 'sha256-[^"]+; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'none';/.test(html) && !/unsafe-inline|unsafe-eval/.test(html));
   check('index.html is pure ASCII, so no character set can misread it', ![...readFileSync(join(OUT, 'index.html'))].some((b) => b > 127));
   check('index.html has no raw "<" inside the data', !/window\.BTT_SITE_DATA = [^\n]*<[a-z/]/i.test(html.slice(html.indexOf('window.BTT_SITE_DATA'), html.indexOf('window.BTT_SITE_DATA') + 400000).split('</script>')[0]));
   check('index.html size is reasonable', html.length < 3e6, (html.length / 1e6).toFixed(2) + ' MB');
@@ -122,6 +125,61 @@ try {
   check('share page boots from the single file, with its settings and the builder\'s text tools', await p.eval('BTT_SHARE.settings.enabled === true && BTT_SHARE.settings.consentText === "Synthetic consent." && !!window.BTT_KIT.Analyzer'));
   check('share page: no CSP violations or console errors', (await p.eval('window.__csp')).length === 0 && p.errors.length === 0, (await p.eval('window.__csp')).concat(p.errors).join('\n'));
   await p.send('Page.close');
+
+  /* ---------- 4. a normal release, with images, videos and captions sent from a separate file server ---------- */
+  const OUT2 = mkdtempSync(join(tmpdir(), 'btt-syn-out2-')), PREFIX2 = '/api/dynamic/documentVersions/40001/files/';
+  const sendFile = (req, res, file, type) => {
+    const data = readFileSync(file), range = req.headers.range && /bytes=(\d+)-(\d*)/.exec(req.headers.range);
+    if (range) { const a = +range[1], b = range[2] ? +range[2] : data.length - 1; res.writeHead(206, { 'Content-Type': type, 'Content-Range': `bytes ${a}-${b}/${data.length}`, 'Accept-Ranges': 'bytes', 'Content-Length': b - a + 1 }); res.end(data.subarray(a, b + 1)); return; }
+    res.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes' }); res.end(data);
+  };
+  const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.txt': 'text/plain', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.vtt': 'text/vtt' };
+  const redirected = [];
+  const fileServer = http.createServer((req, res) => {   // no CORS headers, like a signed CDN link
+    const rel = decodeURIComponent(req.url.split('?')[0]).slice(1), file = join(OUT2, rel);
+    if (!file.startsWith(OUT2) || !existsSync(file)) { res.writeHead(403); res.end(); return; }
+    sendFile(req, res, file, TYPES[extname(rel).toLowerCase()] || 'application/octet-stream');
+  });
+  await new Promise((r) => fileServer.listen(0, '127.0.0.1', r));
+  const FILES_ORIGIN = `http://localhost:${fileServer.address().port}`;   // "localhost" ≠ "127.0.0.1": another origin
+  const portal = http.createServer((req, res) => {
+    const url = decodeURIComponent(req.url.split('?')[0]);
+    if (!url.startsWith(PREFIX2)) { res.writeHead(404); res.end(); return; }
+    const rel = url.slice(PREFIX2.length) || 'index.html', file = join(OUT2, rel), ext = extname(rel).toLowerCase();
+    if (!file.startsWith(OUT2) || !existsSync(file)) { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end('<!doctype html><p>Portal page</p>'); return; }
+    if (['.jpg', '.mp4', '.vtt'].includes(ext)) { redirected.push(rel); res.writeHead(302, { Location: `${FILES_ORIGIN}/${rel}?Policy=synthetic&Signature=synthetic` }); res.end(); return; }
+    sendFile(req, res, file, TYPES[ext] || 'application/octet-stream');
+  });
+  await new Promise((r) => portal.listen(0, '127.0.0.1', r));
+  const BASE2 = `http://127.0.0.1:${portal.address().port}${PREFIX2}`;
+  const install = (rr) => { rmSync(OUT2, { recursive: true, force: true }); for (const f of rr.files) { mkdirSync(dirname(join(OUT2, f.path)), { recursive: true }); writeFileSync(join(OUT2, f.path), Buffer.from(f.b64, 'base64')); } };
+  const visit = async () => {
+    const pg = await openPage(browser, null);
+    await pg.send('Page.addScriptToEvaluateOnNewDocument', { source: CSP_WATCH });
+    await pg.send('Page.navigate', { url: BASE2 + 'index.html' });
+    await pg.waitFor('window.BTT_SITE && window.BTT_SITE.ready', 15000); await sleep(500);
+    const imgs = await pg.eval('Promise.all([...document.images].map((i) => i.decode().then(() => i.naturalWidth > 0, () => false))).then((a) => ({ n: a.length, ok: a.filter(Boolean).length }))');
+    await pg.eval('location.hash = "#/story/story-0001"'); await sleep(600);
+    const vid = await pg.eval(`new Promise((res) => { const v = document.querySelector('[data-testid=player] video'); if (!v) return res({ none: true }); const t = setTimeout(() => res({ timeout: true, err: v.error && v.error.message }), 8000); const go = () => { clearTimeout(t); res({ dur: v.duration, track: (v.querySelector('track') || {}).src || '' }); }; v.addEventListener('error', () => { clearTimeout(t); res({ err: (v.error && v.error.message) || 'error' }); }); v.readyState >= 1 ? go() : v.addEventListener('loadedmetadata', go); v.load(); })`);
+    const cues = await pg.eval('new Promise((res) => { const v = document.querySelector("[data-testid=player] video"); const tr = v && v.textTracks[0]; if (!tr) return res(0); tr.mode = "showing"; setTimeout(() => res(tr.cues ? tr.cues.length : 0), 800); })');
+    const out = { imgs, vid, cues, csp: await pg.eval('window.__csp'), source: await pg.eval('window.BTT_SITE.debug.data.source'), errors: pg.errors };
+    await pg.send('Page.close'); return out;
+  };
+  const r4 = await build(false, {});
+  check('builder: the normal release builds with no problems', r4.problems && r4.problems.length === 0, JSON.stringify(r4.problems || r4.errors));
+  install(r4); redirected.length = 0;
+  const idx = readFileSync(join(OUT2, 'index.html'), 'utf8');
+  check('index.html lets images and media come from https servers (scripts, styles and fetches stay on the site)', idx.includes("img-src 'self' file: data: blob: https:;") && idx.includes("media-src 'self' file: blob: https:;") && idx.includes("connect-src 'self';") && idx.includes("script-src 'self' file:;"));
+  // The stand-in file server is plain http on this computer, so this test names it in the page's rule
+  // (on Syndicate the file server is https, which the rule already allows).
+  writeFileSync(join(OUT2, 'index.html'), idx.replace(/https:;/g, `https: ${FILES_ORIGIN};`));
+  const after = await visit();
+  check('thumbnails load from the file server and display', after.imgs.n > 0 && after.imgs.ok === after.imgs.n, JSON.stringify(after.imgs));
+  check('the story video plays from the file server', after.vid.dur > 5, JSON.stringify(after.vid));
+  check('captions come from the release\'s own copy (a caption file from another server would be refused)', String(after.vid.track).startsWith('blob:') && after.cues > 0, JSON.stringify({ vid: after.vid, cues: after.cues }));
+  check('images and videos really were redirected to the other server', redirected.some((x) => x.endsWith('.jpg')) && redirected.some((x) => x.endsWith('.mp4')), redirected.join(' '));
+  check('no CSP violations or console errors', after.csp.length === 0 && after.errors.length === 0, after.csp.concat(after.errors).join('\n'));
+  portal.close(); fileServer.close();
 } catch (e) {
   check('Syndicate E2E ran without crashing', false, e.stack);
 } finally { await browser.close(); server.close(); }

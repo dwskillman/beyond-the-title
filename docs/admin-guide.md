@@ -152,10 +152,10 @@ To take a story down, set its status back to **Approved** (or Draft) and make a 
 ## Preparing a Syndicate release
 
 1. Open **Release**. The checks list anything that would block a release (for example a published story missing its video) and a few warnings worth a look.
-2. **For Syndicate, tick Single-file website (for Syndicate).** Syndicate serves an uploaded zip's page, but not the stylesheets and scripts beside it (it answers those with its own page, so the site appears unstyled and blank). With this ticked, the styles, font, scripts, story data, thumbnails and captions all go inside `index.html`. Only the videos (`stories/…/video.mp4`) and the font licence stay separate files. The setting is saved with the project.
+2. **Leave Single-file website off** unless the site shows unstyled after uploading. When the stylesheets and scripts beside the page aren't served (the host answers with its own page instead), ticking it puts the styles, font, scripts, story data, thumbnails and captions inside `index.html`. Only the videos and the font licence stay separate files.
 3. Click **Write release to a folder** and choose an **empty folder** (for example **Documents › Beyond the Title Release**). Choose the same folder next time: the release is updated and files of stories that are no longer published are removed. Or click **Download release (.zip)**.
 4. **Preview it:** open `index.html` in the release folder.
-5. **Upload to Syndicate:** add the downloaded release zip as the document, exactly as it is. If you wrote a folder instead, select **everything inside it** and compress that, so `index.html` sits at the top level of the zip.
+5. **Upload to Syndicate:** add the downloaded release zip as the document, exactly as it is: don't unzip it or compress it again. A zip made with Finder's **Compress** adds hidden Mac files, and Syndicate has been seen to process such a zip and then drop it without a message.
 
 A release contains only published stories with their video, thumbnail and captions, the people and teams those stories mention, and the website files. It never contains drafts, transcripts, backups, internal fields or the builder.
 
@@ -178,6 +178,8 @@ Open **Diagnostics**, run the live tests, and use **Copy diagnostics report** if
 - **Copilot says NOT FOUND for Team:** that's expected for anyone who isn't on a named team. Leave Team empty.
 - **Copilot says NOT FOUND for job title or manager:** your Copilot may not have access to the company directory, or the name may be spelled differently there. Check the directory yourself and type the fields.
 - **The detected name is wrong:** type the correct name. Typed values are never replaced automatically.
-- **On Syndicate the site is unstyled or blank, and Chrome's console says "MIME type ('text/html') is not a supported stylesheet MIME type":** make the release again with **Single-file website (for Syndicate)** ticked.
+- **On Syndicate the thumbnails are missing and videos say "format error", and Chrome's console says "violates the following Content Security Policy directive: img-src" (or "media-src"):** the release was made with an older builder.html. Download the current one from GitHub, then make and upload the release again.
+- **On Syndicate the site is unstyled or blank, and Chrome's console says "MIME type ('text/html') is not a supported stylesheet MIME type":** upload the builder's release zip exactly as downloaded. If it still happens, make the release again with **Single-file website** ticked.
+- **Syndicate processes the upload and then the document disappears:** upload the zip the builder made, not one re-made with Finder.
 - **The site opened from disk says it has no data:** **Save to Project** first, so `data/site-data.js` exists.
 - **Captions missing in a disk preview:** save again. Caption text for previews is stored in `data/site-data.js`.
